@@ -16,7 +16,7 @@
     "typecheck": "pnpm -r typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm --filter \"./packages/**\" build && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "check": "pnpm db:generate && pnpm --filter \"./packages/**\" build && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
     "prepare": "husky",
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down",

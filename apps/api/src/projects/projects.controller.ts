@@ -20,7 +20,7 @@ import { ZodValidationPipe } from "../common/zod-validation.pipe";
 import { PrismaService } from "../prisma/prisma.service";
 import { QUEUE_IMAGE_PROCESS, QUEUE_QR_GENERATE, QueueService } from "../queue/queue.service";
 import { StorageService } from "../storage/storage.service";
-import { serializeProject } from "./project-serializer";
+import { serializeProject, type ProjectWithOwner } from "./project-serializer";
 
 const ownerInclude = {
   owner: { select: { name: true, email: true, image: true } },
@@ -43,7 +43,11 @@ export class ProjectsController {
       take: 100,
       include: ownerInclude,
     });
-    return { projects: rows.map((row) => serializeProject(row, this.storage) as ProjectPublic) };
+    return {
+      projects: rows.map(
+        (row: ProjectWithOwner) => serializeProject(row, this.storage) as ProjectPublic,
+      ),
+    };
   }
 
   /** 提交项目（进入待审核队列），并异步生成二维码 / 处理 Logo */
@@ -92,6 +96,8 @@ export class ProjectsController {
       orderBy: { createdAt: "desc" },
       include: ownerInclude,
     });
-    return { projects: rows.map((row) => serializeProject(row, this.storage, true)) };
+    return {
+      projects: rows.map((row: ProjectWithOwner) => serializeProject(row, this.storage, true)),
+    };
   }
 }

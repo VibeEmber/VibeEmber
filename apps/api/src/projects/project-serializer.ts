@@ -2,7 +2,7 @@ import type { Prisma } from "@vibeember/database";
 import type { ProjectPrivate, ProjectPublic } from "@vibeember/shared";
 import type { StorageService } from "../storage/storage.service";
 
-type ProjectWithOwner = Prisma.ProjectGetPayload<{
+export type ProjectWithOwner = Prisma.ProjectGetPayload<{
   include: { owner: { select: { name: true; email: true; image: true } } };
 }>;
 

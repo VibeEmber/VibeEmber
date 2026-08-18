@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
+import type { Prisma } from "@vibeember/database";
 import {
   adminListQuerySchema,
   reviewSchema,
@@ -21,7 +22,7 @@ import { SessionGuard } from "../auth/session.guard";
 import { ZodValidationPipe } from "../common/zod-validation.pipe";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
-import { serializeProject } from "../projects/project-serializer";
+import { serializeProject, type ProjectWithOwner } from "../projects/project-serializer";
 
 const ownerInclude = {
   owner: { select: { name: true, email: true, image: true } },
@@ -47,7 +48,9 @@ export class AdminController {
       take: 200,
       include: ownerInclude,
     });
-    return { projects: rows.map((row) => serializeProject(row, this.storage, true)) };
+    return {
+      projects: rows.map((row: ProjectWithOwner) => serializeProject(row, this.storage, true)),
+    };
   }
 
   /** 审核：通过 / 驳回（写审核审计记录） */
@@ -58,7 +61,7 @@ export class AdminController {
     @Body(new ZodValidationPipe(reviewSchema)) body: ReviewInput,
   ): Promise<{ id: string; status: string }> {
     const reviewedAt = new Date();
-    const existing = await this.prisma.$transaction(async (tx) => {
+    const existing = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const project = await tx.project.findUnique({ where: { id } });
       if (!project) {
         return null;

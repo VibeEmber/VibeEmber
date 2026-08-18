@@ -20,7 +20,5 @@ jobs:
           node-version-file: ".nvmrc"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @vibeember/shared build
-      - run: pnpm --filter @vibeember/database build
-      - run: pnpm --filter @vibeember/storage build
+      - run: pnpm db:generate
       - run: pnpm check
