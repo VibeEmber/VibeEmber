@@ -1,0 +1,110 @@
+// Better-Auth（user/account/session/verification）+ 业务表（project/review_audit）
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProjectStatus {
+  pending
+  approved
+  rejected
+}
+
+model User {
+  id            String         @id
+  name          String
+  email         String         @unique
+  emailVerified Boolean        @default(false)
+  image         String?
+  role          String         @default("member") // member | admin
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  projects      Project[]      @relation("ProjectOwner")
+  reviewed      Project[]      @relation("ProjectReviewer")
+  audits        ReviewAudit[]
+}
+
+model Account {
+  id                String    @id
+  accountId         String
+  providerId        String
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken       String?
+  refreshToken      String?
+  idToken           String?
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope             String?
+  password          String?
+  createdAt         DateTime
+  updatedAt         DateTime
+
+  @@unique([providerId, accountId])
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, value])
+}
+
+model Project {
+  id              String        @id @default(uuid())
+  owner           User          @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId         String
+  name            String
+  tagline         String
+  url             String
+  category        String
+  helpNeeded      String        @default("")
+  status          ProjectStatus @default(pending)
+  rejectionReason String        @default("")
+  logoKey         String?
+  qrKey           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  approvedAt      DateTime?
+  reviewer        User?         @relation("ProjectReviewer", fields: [reviewerId], references: [id])
+  reviewerId      String?
+  audits          ReviewAudit[]
+
+  @@index([ownerId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+}
+
+model ReviewAudit {
+  id        Int      @id @default(autoincrement())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  reviewer  User     @relation(fields: [reviewerId], references: [id])
+  reviewerId String
+  action    String // approved | rejected
+  reason    String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+}

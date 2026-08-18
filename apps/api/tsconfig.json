@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "declaration": false,
+    "outDir": "./dist",
+    "sourceMap": true,
+    "types": ["node"],
+    "paths": {
+      "better-auth/node": ["./node_modules/better-auth/dist/integrations/node.d.mts"],
+      "better-auth/plugins": ["./node_modules/better-auth/dist/plugins/index.d.mts"],
+      "better-auth/adapters/prisma": [
+        "./node_modules/better-auth/dist/adapters/prisma-adapter/index.d.mts"
+      ]
+    }
+  },
+  "include": ["src"]
+}

@@ -1,0 +1,18 @@
+# {$CADDY_DOMAIN} 由 docker-compose.prod.yml 的 env_file(.env) 注入
+# 路由：/api/* -> api:4000；/storage/* -> minio bucket（公开图片）；其余 -> web:3000
+{$CADDY_DOMAIN} {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+
+	handle_path /storage/* {
+		rewrite * /{$S3_BUCKET}{uri}
+		reverse_proxy minio:9000
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}

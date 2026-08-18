@@ -1,188 +1,193 @@
 # VibeEmber 开发文档
 
-> 返回 [社区介绍](../README.md)
+> 返回 [社区介绍](../README.md) · [English README](../README.en.md)
 
-面向 Vibe Coder、独立开发者和小型创业团队的产品首发与冷启动互助社区。
-
-VibeEmber 希望解决一个很具体的问题：很多产品并不是没有价值，只是在发布时没有第一批真实用户、体验反馈和初始曝光。在这里，开发者可以展示作品、帮助其他产品完成真实体验，再为自己的项目获得冷启动支持。
-
-> 先一起跨过冷启动，然后各凭本事起飞。
-
-## 在线体验
-
-[https://wenxinxu.com/VibeEmber/](https://wenxinxu.com/VibeEmber/)
-
-## 已实现功能
-
-- 产品展示、分类筛选与搜索
-- 开发者注册、登录和安全退出
-- 真实项目投稿与持久化存储
-- 投稿状态查询：审核中、已上线、已驳回
-- 管理员审核工作台
-- 通过审核后自动公开展示
-- 驳回原因和审核操作记录
-- 互助任务、火苗积分和贡献榜的界面原型
-- 桌面端和移动端响应式布局
-- 针对低配置服务器的静态构建与轻量 API
+面向 Vibe Coder、独立开发者和小型创业团队的产品首发互助社区（星火场 · VibeEmber）。
 
 ## 技术架构
 
 ```text
 浏览器
-  ├─ React 静态前端
-  └─ /VibeEmber/api/*
-          ↓
-        Nginx
-          ↓
-  Python WSGI 轻量 API
-          ↓
-        SQLite
+  │
+  ├─ 开发：Next.js :3000  ──rewrite /api/*──►  NestJS :4000
+  │
+  └─ 生产：Caddy :80/:443
+           ├─ /api/*      → api:4000
+           ├─ /storage/*  → minio:9000/{bucket}
+           └─ /*          → web:3000
+                    │
+        ┌───────────┼───────────┐
+        ▼           ▼           ▼
+   PostgreSQL    MinIO/S3    SMTP
+     :5432        :9000     开发=Mailpit :1025
+                              生产=真实 SMTP
+        ▲
+        └── pg-boss 队列（worker 消费 qr.generate / image.process）
 ```
 
-| 部分 | 技术 |
-| --- | --- |
-| 前端 | React 19、TypeScript、Vite / Vinext |
-| 图标 | Lucide React |
-| 后端 | Python 3 标准库 WSGI，无第三方运行时依赖 |
-| 数据库 | SQLite（WAL 模式） |
-| Web 服务 | Nginx |
-| 进程管理 | systemd |
+标准端口（dev / prod 内部一致）：
 
-前端使用纯静态构建产物，服务器无需安装 Node.js 依赖或参与编译。API 只使用 Python 标准库，适合内存较小的服务器。
+| 服务                  | 端口        | 说明                  |
+| --------------------- | ----------- | --------------------- |
+| web（Next.js 16.3.1） | 3000        | App Router，Turbopack |
+| api（NestJS 11）      | 4000        | 全局前缀 `/api`       |
+| worker                | 无          | pg-boss 消费者        |
+| PostgreSQL 17         | 5432        | Prisma ORM            |
+| MinIO                 | 9000 / 9001 | S3 API / 控制台       |
+| Mailpit（仅 dev）     | 1025 / 8025 | SMTP / 网页收件箱     |
+| Caddy（仅 prod）      | 80 / 443    | 自动 TLS              |
 
-## 项目结构
+## 仓库结构
 
 ```text
-app/
-  page.tsx                 # 主页与交互逻辑
-  globals.css              # 全局样式和响应式布局
-static/
-  index.html               # 静态版入口
-  src/main.tsx             # 静态版 React 挂载入口
-server/
-  app.py                   # 账号、投稿和审核 API
-  vibe-ember-api.service   # systemd 服务配置
-  *.conf                   # Nginx 参考配置
-vite.static.config.ts      # /VibeEmber/ 子路径静态构建配置
+apps/web          Next.js 16 前端
+apps/api          NestJS 11 + Better-Auth + 业务接口
+apps/worker       pg-boss 队列（二维码 / 图片压缩）
+packages/shared   类型、常量、zod schema、API 客户端
+packages/database Prisma schema / 迁移 / seed
+packages/storage  S3 客户端（预签名、上传、公开 URL）
+deploy/           Dockerfile 与 Caddyfile
+docker-compose.yml            开发基础设施
+docker-compose.prod.yml       生产全栈
 ```
 
 ## 本地开发
 
-### 环境要求
-
-- Node.js `>= 22.13.0`
-- Python `>= 3.10`
-
-### 启动前端
+前置：Node 24 LTS、pnpm 9.15、Docker。
 
 ```bash
-npm install
-npm run dev
+pnpm install
+cp .env.example .env          # 可选；代码内置了开发默认值
+docker compose up -d          # postgres / minio / mailpit
+pnpm db:migrate               # 首次会提示输入迁移名；已有迁移时直接 apply
+pnpm db:seed
+pnpm dev                      # 并行启动 web / api / worker / 包 watch
 ```
 
-### 启动 API
-
-API 不需要安装 Python 依赖。开发环境可参考以下变量启动：
+单独启动：
 
 ```bash
-PORT=8790 \
-BASE_PATH=/ \
-COOKIE_SECURE=0 \
-ALLOWED_ORIGINS=http://localhost:3000 \
-BOOTSTRAP_ADMIN_EMAIL=admin@example.com \
-python3 server/app.py
+pnpm --filter @vibeember/api start
+pnpm --filter @vibeember/worker start
+pnpm --filter @vibeember/web dev
 ```
 
-API 健康检查：
+验证码邮件：打开 [http://localhost:8025](http://localhost:8025)。
+MinIO 控制台：[http://localhost:9001](http://localhost:9001)（账号 `vibe` / `vibeember-secret`）。
+
+冒烟测试（api + worker + 基础设施已启动）：
 
 ```bash
-curl http://127.0.0.1:8790/api/health
+pnpm smoke
 ```
 
-> 注：生产环境中前端与 API 通过 Nginx 的 `/VibeEmber/api/` 路径整合。
+覆盖健康检查、公开项目、未登录拦截、邮箱 OTP（经 Mailpit 取码）、头像预签名直传、投稿审核、worker 生成二维码。
 
-## 构建
+## 认证
 
-### Vinext / Sites 构建
+- Better-Auth：GitHub OAuth + 邮箱 OTP，**无密码登录**
+- Session / Cookie / CSRF 由 Better-Auth 管理
+- `BOOTSTRAP_ADMIN_EMAIL`（默认 `admin@vibeember.dev`）首次登录自动成为管理员
+- GitHub OAuth App 回调地址：`{BETTER_AUTH_URL}/api/auth/callback/github`
+  - 开发：`http://localhost:4000/api/auth/callback/github`
+  - 生产：`https://{CADDY_DOMAIN}/api/auth/callback/github`
+
+## 图片存储
+
+头像、产品 Logo、产品二维码走 S3 兼容存储（开发默认 MinIO）。
+
+| 对象   | 键位                          | 说明                                      |
+| ------ | ----------------------------- | ----------------------------------------- |
+| 头像   | `avatars/{userId}-{rand}.ext` | 浏览器预签名直传，worker 压成 256px WebP  |
+| Logo   | `logos/{userId}-{rand}.ext`   | 提交时绑定，worker 压成 512px WebP        |
+| 二维码 | `qr/{projectId}.png`          | 提交后入队 `qr.generate`，worker 写入 PNG |
+
+开发公开 URL：`http://localhost:9000/vibeember/{key}`  
+生产公开 URL：`https://{CADDY_DOMAIN}/storage/{key}`（Caddy 反代 MinIO，不暴露 9000）
+
+## 环境变量
+
+见仓库根目录 `.env.example`。开发可以不建 `.env`（代码与 `packages/database/prisma/.env` 提供默认值）；生产必须复制并替换全部敏感值。
+
+关键项：
+
+- `DATABASE_URL` / `BETTER_AUTH_SECRET`（≥32 位随机） / `BETTER_AUTH_URL` / `WEB_URL`
+- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`
+- `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `MAIL_FROM`  
+  开发默认 `localhost:1025`（Mailpit）；生产改为真实 SMTP
+- `S3_ENDPOINT` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` / `S3_BUCKET` / `S3_PUBLIC_URL`
+- 生产专用：`CADDY_DOMAIN` / `POSTGRES_PASSWORD`
+
+## 生产部署
+
+全容器化，Caddy 接管 80/443 并自动申请证书（域名 DNS 需先解析到服务器）。
 
 ```bash
-npm run build
+cp .env.example .env
+# 编辑 .env：CADDY_DOMAIN、BETTER_AUTH_SECRET、GITHUB_*、SMTP_*、POSTGRES_PASSWORD
+# 生产 BETTER_AUTH_URL / WEB_URL 在 compose 中会按 CADDY_DOMAIN 覆盖为 https://{domain}
+
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-### 普通服务器静态构建
+`migrate` 服务会在 api / worker 启动前执行 `prisma migrate deploy`。
+
+如需改用外部 S3，去掉 compose 中的 minio / minio-init，并把 `S3_ENDPOINT` / `S3_PUBLIC_URL` 指到外部服务。
+
+## 常用脚本
 
 ```bash
-npm run build:static
+pnpm dev            # 全仓并行开发
+pnpm build          # 全仓构建
+pnpm lint           # ESLint
+pnpm lint:fix       # ESLint 自动修复
+pnpm format         # Prettier 统一格式化
+pnpm format:check   # Prettier 检查（不写回）
+pnpm test           # 目前为 packages/shared 的 zod 单测
+pnpm typecheck      # 各包 tsc --noEmit
+pnpm check          # 质量门禁：format + lint + typecheck + test
+pnpm db:migrate     # prisma migrate dev
+pnpm db:deploy      # prisma migrate deploy（生产）
+pnpm db:seed
+pnpm smoke
+pnpm infra:up       # docker compose up -d --wait
+pnpm infra:down
 ```
 
-构建结果会生成在 `static-dist/` 中。只需把该目录下的产物交给 Nginx 托管，不要在低配置服务器上执行 `npm install` 或构建。
+## 质量门禁与提交规范
 
-## 生产环境配置
+本地 Git hooks（[Husky](https://typicode.github.io/husky/)）：
 
-`server/vibe-ember-api.env.example` 提供了环境变量示例：
+| Hook         | 做什么                                            |
+| ------------ | ------------------------------------------------- |
+| `pre-commit` | lint-staged：Prettier 格式化暂存文件，再跑 ESLint |
+| `commit-msg` | commitlint：Conventional Commits                  |
+| `pre-push`   | `pnpm check`（format + lint + typecheck + test）  |
 
-| 变量 | 说明 |
-| --- | --- |
-| `HOST` | API 监听地址，生产环境建议使用 `127.0.0.1` |
-| `PORT` | API 监听端口，默认 `8790` |
-| `BASE_PATH` | Cookie 所属站点路径，默认 `/VibeEmber` |
-| `DATA_DIR` | SQLite 数据目录 |
-| `DB_PATH` | SQLite 数据库文件路径 |
-| `BOOTSTRAP_ADMIN_EMAIL` | 指定可注册为管理员的邮箱 |
-| `ALLOWED_ORIGINS` | 允许发起写操作的站点来源，多个值用逗号分隔 |
-| `COOKIE_SECURE` | 生产环境必须设为 `1` |
-| `ACCESS_LOG` | 是否输出 API 访问日志 |
+CI：`.github/workflows/ci.yml` 在 `main` 的 push / PR 上跑同样的 `pnpm check`。
 
-第一次部署时，使用 `BOOTSTRAP_ADMIN_EMAIL` 指定的邮箱注册，该账号会自动获得管理员权限。其他邮箱默认为普通开发者。
+编辑器建议启用 Format on Save，并选用 Prettier 作为默认格式化工具。仓库根目录 `.prettierrc.json` 为唯一风格来源。
 
-多人协作时，不要共享 root 账号或服务器密码。仓库提供了受限部署账号的脚本和使用说明：
+提交标题格式：
 
-- [受限部署账号说明](../ops/DEPLOYMENT_ACCESS.md)
-- `ops/vibeember-deploy`：校验、发布和失败回滚
-- `ops/vibeember-status`：仅查看 VibeEmber 服务与日志
-
-## 安全设计
-
-- 密码使用 PBKDF2-SHA256 加盐哈希，不保存明文
-- 会话令牌仅以 SHA-256 哈希形式存入数据库
-- Cookie 使用 `HttpOnly`、`SameSite=Lax` 和生产环境 `Secure`
-- 写操作需要 CSRF Token 校验
-- 注册和登录包含基础频率限制
-- 管理员权限由服务端校验，不依赖前端隐藏
-- 项目默认为待审核，只有审核通过后才会公开
-
-请勿将生产环境配置、邮箱授权码、SSH 密钥、服务器密码或 SQLite 数据库提交到 Git。
-
-## 数据表
-
-- `users`：用户账号、密码哈希与角色
-- `sessions`：登录会话、CSRF Token 与过期时间
-- `projects`：项目投稿、所属用户与审核状态
-- `review_audit`：审核人、审核动作、原因和时间
-
-## 当前边界
-
-以下功能还未完成，欢迎继续建设：
-
-- 邮箱验证与忘记密码
-- 项目 Logo 和截图上传
-- 互助任务的真实数据化
-- 火苗积分明细与防作弊规则
-- 评论、收藏和站内通知
-- 邮件通知与审核结果提醒
-
-## 社区原则
-
-VibeEmber 用于真实产品体验、有效反馈和联合推广，不鼓励机器刷量、虚假注册、刷广告收益或规避第三方平台规则。
-
-互助解决的是产品从 0 到 1 的启动问题。能不能长期获得用户和收入，最终仍然取决于产品价值与运营能力。
-
-## 贡献
-
-欢迎通过 Issue 提交建议或问题。在提交 Pull Request 前，请确保：
-
-```bash
-npm run build
-npm run build:static
-python3 -m py_compile server/app.py
+```text
+<type>(<optional-scope>): <subject>
 ```
+
+允许的 type：`feat` `fix` `docs` `style` `refactor` `perf` `test` `build` `ci` `chore` `revert`。
+
+主题可用中文，整行不超过 100 字。例如：
+
+```text
+feat(web): 星火场 Logo 替换页头火箭
+fix(api): Verification 表补 updatedAt
+docs: 增加中英文 README
+```
+
+clone 后执行一次 `pnpm install`，`prepare` 会安装 husky。
+
+## 已实现 / 未实现
+
+已实现：产品展示与搜索、GitHub / 邮箱 OTP 登录、项目投稿与审核、头像 / Logo 上传、产品二维码生成。
+
+未实现（界面仍是原型）：互助任务验收、火苗积分账本、评论 / 收藏 / 通知。

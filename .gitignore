@@ -1,47 +1,25 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+node_modules/
+
+# builds
+dist/
+.next/
+out/
+static-dist/
+*.tsbuildinfo
 
 # testing
-/coverage
+coverage/
 
-# next.js
-/.next/
-/.vinext/
-/out/
+# env（.env.example 与 database 包的 dev 默认 .env 保留）
+.env
+.env.*
+!.env.example
+!packages/database/prisma/.env
 
 # misc
 .DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-/dist/
-/static-dist/
-/server/data/
-*.db
-*.db-shm
-*.db-wal
-__pycache__/
-*.pyc
-/.wrangler/
-/outputs/
-/work/
+*.log
+.wrangler/
+.turbo/
+.zcode/

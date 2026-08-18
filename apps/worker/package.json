@@ -1,0 +1,28 @@
+{
+  "name": "@vibeember/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsup",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@vibeember/database": "workspace:*",
+    "@vibeember/storage": "workspace:*",
+    "dotenv": "^17.0.0",
+    "pg-boss": "^10.1.0",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.34.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/qrcode": "^1.5.5",
+    "tsup": "^8.4.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3"
+  }
+}

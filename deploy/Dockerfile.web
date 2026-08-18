@@ -1,0 +1,26 @@
+# Next.js 16 standalone 构建（Turbopack）
+FROM node:24-alpine AS base
+RUN corepack enable
+WORKDIR /repo
+
+FROM base AS deps
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/web/package.json apps/web/
+COPY packages/shared/package.json packages/shared/
+RUN pnpm install --frozen-lockfile --filter @vibeember/web...
+
+FROM deps AS build
+COPY packages/shared/ packages/shared/
+COPY apps/web/ apps/web/
+RUN pnpm --filter @vibeember/shared build && pnpm --filter @vibeember/web build
+
+FROM node:24-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+COPY --from=build /repo/apps/web/.next/standalone ./
+COPY --from=build /repo/apps/web/.next/static ./.next/static
+COPY --from=build /repo/apps/web/public ./public
+EXPOSE 3000
+CMD ["node", "server.js"]

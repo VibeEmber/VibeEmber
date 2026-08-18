@@ -1,0 +1,61 @@
+# 开发基础设施：PostgreSQL + MinIO(S3) + Mailpit(邮件收件箱)
+# 应用（web/api/worker）直接跑在本机：pnpm dev
+# 端口与生产一致：PG 5432 / MinIO 9000+9001 / Mailpit 1025+8025
+name: vibeember
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: vibe
+      POSTGRES_PASSWORD: vibe
+      POSTGRES_DB: vibeember
+    ports:
+      - "5432:5432"
+    volumes:
+      - vibeember-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vibe -d vibeember"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: vibe
+      MINIO_ROOT_PASSWORD: vibeember-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - vibeember-miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - sh
+      - -c
+      - |
+        mc alias set local http://minio:9000 vibe vibeember-secret &&
+        mc mb --ignore-existing local/vibeember &&
+        mc anonymous set download local/vibeember
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  vibeember-pgdata:
+  vibeember-miniodata:

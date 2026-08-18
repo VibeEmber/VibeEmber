@@ -1,0 +1,134 @@
+# 生产全栈编排：Caddy(80/443 自动 TLS) + web + api + worker + migrate + PostgreSQL + MinIO
+# 使用：cp .env.example .env 并填好生产值，然后
+#   docker compose -f docker-compose.prod.yml up -d --build
+name: vibeember-prod
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file: .env
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - vibeember-caddy-data:/data
+      - vibeember-caddy-config:/config
+    depends_on:
+      - web
+      - api
+      - minio
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.web
+    restart: unless-stopped
+    expose:
+      - "3000"
+
+  api:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.api
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://vibe:${POSTGRES_PASSWORD:-vibe}@postgres:5432/vibeember
+      API_PORT: "4000"
+      WEB_URL: https://${CADDY_DOMAIN:-localhost}
+      BETTER_AUTH_URL: https://${CADDY_DOMAIN:-localhost}
+      SMTP_HOST: ${SMTP_HOST:-localhost}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_URL: https://${CADDY_DOMAIN:-localhost}/storage
+    restart: unless-stopped
+    expose:
+      - "4000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.worker
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://vibe:${POSTGRES_PASSWORD:-vibe}@postgres:5432/vibeember
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_URL: https://${CADDY_DOMAIN:-localhost}/storage
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  migrate:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.api
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://vibe:${POSTGRES_PASSWORD:-vibe}@postgres:5432/vibeember
+    command:
+      - sh
+      - -c
+      - ./node_modules/.bin/prisma migrate deploy --schema ./node_modules/@vibeember/database/prisma/schema.prisma
+    restart: "no"
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: vibe
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vibe}
+      POSTGRES_DB: vibeember
+    volumes:
+      - vibeember-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vibe -d vibeember"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-vibe}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-vibeember-secret}
+    volumes:
+      - vibeember-miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      S3_BUCKET: ${S3_BUCKET:-vibeember}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-vibe}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-vibeember-secret}
+    entrypoint:
+      - sh
+      - -c
+      - |
+        mc alias set local http://minio:9000 "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY" &&
+        mc mb --ignore-existing "local/$$S3_BUCKET" &&
+        mc anonymous set download "local/$$S3_BUCKET"
+
+volumes:
+  vibeember-pgdata:
+  vibeember-miniodata:
+  vibeember-caddy-data:
+  vibeember-caddy-config:

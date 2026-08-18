@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-echo "== VibeEmber API =="
-systemctl status vibe-ember-api.service --no-pager -l || true
-echo
-echo "== 最近 80 行日志 =="
-journalctl -u vibe-ember-api.service -n 80 --no-pager

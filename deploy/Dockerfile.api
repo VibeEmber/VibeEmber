@@ -1,0 +1,32 @@
+# NestJS API（含 prisma CLI，migrate 服务复用本镜像）
+FROM node:24-alpine AS base
+RUN corepack enable
+WORKDIR /repo
+
+FROM base AS deps
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/api/package.json apps/api/
+COPY packages/shared/package.json packages/shared/
+COPY packages/database/package.json packages/database/
+COPY packages/storage/package.json packages/storage/
+RUN pnpm install --frozen-lockfile --filter @vibeember/api...
+
+FROM deps AS build
+COPY packages/shared/ packages/shared/
+COPY packages/database/ packages/database/
+COPY packages/storage/ packages/storage/
+COPY apps/api/ apps/api/
+RUN pnpm --filter @vibeember/shared build && pnpm --filter @vibeember/database build && pnpm --filter @vibeember/storage build && pnpm --filter @vibeember/api build
+
+FROM base AS deploy
+COPY --from=build /repo /repo
+RUN pnpm --filter @vibeember/api --prod deploy /out
+WORKDIR /out
+RUN ./node_modules/.bin/prisma generate --schema ./node_modules/@vibeember/database/prisma/schema.prisma
+
+FROM node:24-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=deploy /out ./
+EXPOSE 4000
+CMD ["node", "dist/main.js"]

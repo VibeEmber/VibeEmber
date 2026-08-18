@@ -1,0 +1,30 @@
+# 队列 worker（pg-boss + qrcode + sharp）
+FROM node:24-alpine AS base
+RUN corepack enable
+WORKDIR /repo
+
+FROM base AS deps
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/worker/package.json apps/worker/
+COPY packages/database/package.json packages/database/
+COPY packages/storage/package.json packages/storage/
+RUN pnpm install --frozen-lockfile --filter @vibeember/worker...
+
+FROM deps AS build
+COPY packages/database/ packages/database/
+COPY packages/storage/ packages/storage/
+COPY apps/worker/ apps/worker/
+RUN pnpm --filter @vibeember/database build && pnpm --filter @vibeember/storage build && pnpm --filter @vibeember/worker build
+
+FROM base AS deploy
+COPY --from=build /repo /repo
+RUN pnpm --filter @vibeember/worker --prod deploy /out
+WORKDIR /out
+# sharp 需要在目标环境重装原生依赖
+RUN pnpm rebuild sharp
+
+FROM node:24-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=deploy /out ./
+CMD ["node", "dist/main.js"]
