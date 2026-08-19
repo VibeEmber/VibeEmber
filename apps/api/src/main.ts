@@ -1,7 +1,14 @@
 import "reflect-metadata";
+import { ProxyAgent, setGlobalDispatcher } from "undici";
 import { loadEnv } from "./env";
 
 loadEnv();
+
+// 配置了 HTTPS_PROXY（.env 或环境变量）时让全局 fetch（better-auth 的 GitHub 请求）走代理；
+// 必须在 loadEnv 之后、任何 fetch 之前设置
+if (process.env.HTTPS_PROXY) {
+  setGlobalDispatcher(new ProxyAgent(process.env.HTTPS_PROXY));
+}
 
 import helmet from "helmet";
 import { NestFactory } from "@nestjs/core";

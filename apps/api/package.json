@@ -24,6 +24,7 @@
     "pg-boss": "^10.1.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "undici": "^8.10.0",
     "zod": "^3.25.0"
   },
   "devDependencies": {

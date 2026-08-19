@@ -82,7 +82,8 @@ export function AuthModal({ onClose, onNotify }: AuthModalProps) {
     try {
       const { data, error } = await authClient.signIn.social({
         provider: "github",
-        callbackURL: "/",
+        // 必须传绝对地址：相对路径会被解析到 API 的 baseURL（4000 端口）而非前端站点
+        callbackURL: `${window.location.origin}/`,
       });
       if (error) {
         throw new Error(error.message || "GitHub 登录暂不可用");
