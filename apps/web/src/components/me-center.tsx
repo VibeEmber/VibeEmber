@@ -8,7 +8,6 @@ import {
   Flame,
   LoaderCircle,
   LogOut,
-  Plus,
   Rocket,
   ShieldCheck,
   Upload,
@@ -36,7 +35,6 @@ import type {
 } from "@vibeember/shared";
 import { authClient } from "@/lib/auth-client";
 import { AuthModal } from "./modals/auth-modal";
-import { SubmitModal } from "./modals/submit-modal";
 import { TaskClaimModal } from "./modals/task-claim-modal";
 import { TaskCreateModal } from "./modals/task-create-modal";
 import { Toast } from "./toast";
@@ -70,7 +68,6 @@ export function MeCenter({ user }: { user: SessionUser }) {
   const [ledger, setLedger] = useState<SparkLedgerItem[]>([]);
   const [creatingFor, setCreatingFor] = useState<ProjectPrivate | null>(null);
   const [activeClaim, setActiveClaim] = useState<TaskClaimItem | null>(null);
-  const [showSubmit, setShowSubmit] = useState(false);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState("");
@@ -115,6 +112,12 @@ export function MeCenter({ user }: { user: SessionUser }) {
     };
     void load();
   }, [user.role]);
+
+  useEffect(() => {
+    const refresh = () => void api.myProjects().then((data) => setMyProjects(data.projects));
+    window.addEventListener("vibeember:project-submitted", refresh);
+    return () => window.removeEventListener("vibeember:project-submitted", refresh);
+  }, []);
 
   const changeAvatar = async (file: File | undefined) => {
     if (!file) return;
@@ -205,7 +208,9 @@ export function MeCenter({ user }: { user: SessionUser }) {
         {tab === "overview" && (
           <>
             <header className="me-heading">
-              <span className="section-kicker">个人中心</span>
+              <span className="section-kicker">
+                <UserRound size={15} /> 个人中心
+              </span>
               <h1>概览</h1>
               <p>资料、火苗和待办分开放，避免挤在一个对话框里。</p>
             </header>
@@ -265,9 +270,7 @@ export function MeCenter({ user }: { user: SessionUser }) {
                 <Rocket size={15} /> 我的产品
               </span>
               <h1>项目状态</h1>
-              <button className="primary-button" onClick={() => setShowSubmit(true)}>
-                <Plus size={16} /> 新建投稿
-              </button>
+              <p>提交后在这里跟踪审核进度，已上线项目可以发起助燃。</p>
             </header>
             <div className="submission-list mine me-list">
               {myProjects.map((project) => (
@@ -285,26 +288,24 @@ export function MeCenter({ user }: { user: SessionUser }) {
                       <em>驳回原因：{project.rejectionReason}</em>
                     )}
                   </div>
-                  {project.status === "approved" && project.qrUrl && (
-                    <img
-                      className="qr-thumb"
-                      src={project.qrUrl}
-                      alt={`${project.name} 二维码`}
-                      onError={(event) => {
-                        event.currentTarget.style.setProperty("display", "none");
-                      }}
-                    />
-                  )}
-                  {project.status === "approved" && (
-                    <button onClick={() => setCreatingFor(project)}>发起助燃</button>
-                  )}
-                  <span className={`status-pill ${project.status}`}>
-                    {project.status === "approved"
-                      ? "已上线"
-                      : project.status === "rejected"
-                        ? "已驳回"
-                        : "审核中"}
-                  </span>
+                  <div className="review-actions">
+                    {project.status === "approved" && (
+                      <button
+                        type="button"
+                        className="approve"
+                        onClick={() => setCreatingFor(project)}
+                      >
+                        <Flame size={14} /> 发起助燃
+                      </button>
+                    )}
+                    <span className={`status-pill ${project.status}`}>
+                      {project.status === "approved"
+                        ? "已上线"
+                        : project.status === "rejected"
+                          ? "已驳回"
+                          : "审核中"}
+                    </span>
+                  </div>
                 </article>
               ))}
               {myProjects.length === 0 && (
@@ -317,9 +318,11 @@ export function MeCenter({ user }: { user: SessionUser }) {
         {tab === "aid" && (
           <>
             <header className="me-heading">
-              <span className="section-kicker">火苗 {sparks?.available ?? 0}</span>
+              <span className="section-kicker">
+                <Users size={15} /> 互助
+              </span>
               <h1>互助</h1>
-              <p>左边验收别人帮你的反馈，下面是你领取的任务。</p>
+              <p>可用火苗 {sparks?.available ?? 0}。左边验收别人帮你的反馈，下面是你领取的任务。</p>
             </header>
             <div className="submission-list mine me-list">
               {reviews.map((item) => (
@@ -347,13 +350,15 @@ export function MeCenter({ user }: { user: SessionUser }) {
                     item.status === "submitted" ||
                     item.status === "rejected" ||
                     item.status === "accepted") && (
-                    <button onClick={() => setActiveClaim(item)}>
-                      {item.status === "claimed"
-                        ? "提交反馈"
-                        : item.status === "rejected"
-                          ? "查看驳回 / 举报"
-                          : "查看进度"}
-                    </button>
+                    <div className="review-actions">
+                      <button onClick={() => setActiveClaim(item)}>
+                        {item.status === "claimed"
+                          ? "提交反馈"
+                          : item.status === "rejected"
+                            ? "查看驳回 / 举报"
+                            : "查看进度"}
+                      </button>
+                    </div>
                   )}
                 </article>
               ))}
@@ -367,8 +372,11 @@ export function MeCenter({ user }: { user: SessionUser }) {
         {tab === "ledger" && (
           <>
             <header className="me-heading">
-              <span className="section-kicker">账本</span>
+              <span className="section-kicker">
+                <Flame size={15} /> 火苗账本
+              </span>
               <h1>火苗从哪来、花到哪</h1>
+              <p>每一笔火苗的收入和支出都记在这里，可逐笔核对。</p>
             </header>
             <div className="submission-list mine me-list">
               {ledger.map((item) => (
@@ -396,6 +404,7 @@ export function MeCenter({ user }: { user: SessionUser }) {
                 <ShieldCheck size={15} /> 审核工作台
               </span>
               <h1>待审核投稿</h1>
+              <p>审核新投稿，通过后项目将在社区公开展示。</p>
               <strong className="me-count">{reviewProjects.length}</strong>
             </header>
             <div className="submission-list mine me-list">
@@ -437,8 +446,11 @@ export function MeCenter({ user }: { user: SessionUser }) {
         {tab === "reports" && user.role === "admin" && (
           <>
             <header className="me-heading">
-              <span className="section-kicker">抽查</span>
+              <span className="section-kicker">
+                <BookOpen size={15} /> 抽查举报
+              </span>
               <h1>待处理举报</h1>
+              <p>处理系统抽查和用户举报的互助结果，维护社区公平。</p>
             </header>
             <div className="submission-list mine me-list">
               {reports.map((item) => (
@@ -488,17 +500,6 @@ export function MeCenter({ user }: { user: SessionUser }) {
             setCreatingFor(null);
             void api.sparks().then(setSparks);
             void api.ledger().then(setLedger);
-          }}
-        />
-      )}
-      {showSubmit && (
-        <SubmitModal
-          onClose={() => setShowSubmit(false)}
-          onNotify={onNotify}
-          onSubmitted={(message) => {
-            setShowSubmit(false);
-            onNotify(message);
-            void api.myProjects().then((data) => setMyProjects(data.projects));
           }}
         />
       )}

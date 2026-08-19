@@ -74,6 +74,7 @@ export function AppChrome({ children }: AppChromeProps) {
           onSubmitted={(message) => {
             setShowSubmit(false);
             notify(message);
+            window.dispatchEvent(new Event("vibeember:project-submitted"));
           }}
         />
       )}
