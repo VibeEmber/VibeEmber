@@ -5,7 +5,7 @@ loadEnv();
 import pgBossDefault, { type Job } from "pg-boss";
 import QRCode from "qrcode";
 import sharp from "sharp";
-import { CREDIT } from "@vibeember/shared";
+import { CREDIT, SPARK } from "@vibeember/shared";
 import { prisma } from "@vibeember/database";
 import { createStorage } from "@vibeember/storage";
 
@@ -97,6 +97,99 @@ async function main(): Promise<void> {
         await prisma.user.update({ where: { id: user.id }, data: { creditScore: score } });
       }
     }
+    const reviewBefore = new Date(now.getTime() - SPARK.reviewHours * 60 * 60 * 1000);
+    const overdueReviews = await prisma.taskClaim.findMany({
+      where: { status: "submitted", submittedAt: { lt: reviewBefore } },
+      include: { task: true },
+    });
+    for (const claim of overdueReviews) {
+      await prisma.$transaction(async (tx) => {
+        await tx.taskClaim.update({
+          where: { id: claim.id },
+          data: {
+            status: "accepted",
+            autoAccepted: true,
+            reviewNote: "发起人超时未验收，系统自动通过",
+            reviewedAt: now,
+          },
+        });
+        await tx.task.update({
+          where: { id: claim.taskId },
+          data: { acceptedCount: { increment: 1 }, frozenAmount: { decrement: claim.task.reward } },
+        });
+        const owner = await tx.sparkAccount.upsert({
+          where: { userId: claim.task.ownerId },
+          update: {},
+          create: { userId: claim.task.ownerId, balance: 0, frozen: 0, lifetimeEarned: 0 },
+        });
+        const helper = await tx.sparkAccount.upsert({
+          where: { userId: claim.userId },
+          update: {},
+          create: { userId: claim.userId, balance: 0, frozen: 0, lifetimeEarned: 0 },
+        });
+        const ownerNext = await tx.sparkAccount.update({
+          where: { userId: claim.task.ownerId },
+          data: {
+            balance: owner.balance - claim.task.reward,
+            frozen: Math.max(0, owner.frozen - claim.task.reward),
+          },
+        });
+        const helperNext = await tx.sparkAccount.update({
+          where: { userId: claim.userId },
+          data: {
+            balance: helper.balance + claim.task.reward,
+            lifetimeEarned: { increment: claim.task.reward },
+          },
+        });
+        await tx.sparkLedger.create({
+          data: {
+            userId: claim.task.ownerId,
+            amount: -claim.task.reward,
+            balanceAfter: ownerNext.balance,
+            type: "task_unfreeze",
+            refType: "claim",
+            refId: claim.id,
+            memo: `超时自动验收，支付赏金 ${claim.task.reward}`,
+          },
+        });
+        await tx.sparkLedger.create({
+          data: {
+            userId: claim.userId,
+            amount: claim.task.reward,
+            balanceAfter: helperNext.balance,
+            type: "task_reward",
+            refType: "claim",
+            refId: claim.id,
+            memo: `完成任务「${claim.task.title}」`,
+          },
+        });
+      });
+      const helperUser = await prisma.user.findUnique({ where: { id: claim.userId } });
+      if (helperUser) {
+        const score = Math.min(100, helperUser.creditScore + CREDIT.acceptDelta);
+        await prisma.user.update({ where: { id: claim.userId }, data: { creditScore: score } });
+      }
+      await prisma.notification.create({
+        data: {
+          userId: claim.userId,
+          type: "task_accepted",
+          title: "助燃已自动验收通过",
+          body: `获得 ${claim.task.reward} 火苗`,
+          refType: "claim",
+          refId: claim.id,
+        },
+      });
+      if (Math.random() < SPARK.spotCheckRate) {
+        await prisma.taskReport.create({
+          data: {
+            claimId: claim.id,
+            reporterId: claim.userId,
+            kind: "spot_check",
+            reason: "系统抽查已通过的助燃反馈",
+          },
+        });
+      }
+    }
     const staleTasks = await prisma.task.findMany({
       where: { status: { in: ["open", "full"] }, deadline: { lt: now } },
     });
@@ -131,8 +224,10 @@ async function main(): Promise<void> {
         }
       });
     }
-    if (staleClaims.length || staleTasks.length) {
-      console.log(`[task.expire] claims=${staleClaims.length} tasks=${staleTasks.length}`);
+    if (staleClaims.length || overdueReviews.length || staleTasks.length) {
+      console.log(
+        `[task.expire] claims=${staleClaims.length} autoAccepted=${overdueReviews.length} tasks=${staleTasks.length}`,
+      );
     }
   };
   await expireDue();

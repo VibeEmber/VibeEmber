@@ -53,15 +53,15 @@ You do not have to write code. Careful testing and useful feedback already make 
 ```text
 Sign in with GitHub or email OTP
         ↓
-Publish a real product (optional logo)
+Publish a real, tryable product (screenshot required)
         ↓
 Pass community review and go public
         ↓
-Start a real-experience task and let your spark spread
+Help others finish trial tasks and earn sparks
         ↓
-Get first users and feedback
+Spend sparks to start a push: pick a feedback type, write a checklist, freeze the bounty
         ↓
-Improve the product and keep the fire going
+Improve from valid feedback and keep the fire going
 ```
 
 ### 1. Sign in
@@ -70,7 +70,7 @@ Use **GitHub** or an **email one-time code (OTP)**. A new email creates an accou
 
 ### 2. Publish
 
-Share the name, a one-line pitch, a live URL, a category, and the help you need most. You can upload a logo. After submit, the system generates a QR code for the product link.
+Share the name, a one-line pitch, a live entry point, the product kind, and the help you need most (at least 20 characters). Upload at least one product screenshot; a logo is optional. After submit, the system generates a QR code for the product link.
 
 You do not need a business plan. Answer three things:
 
@@ -88,22 +88,24 @@ New projects enter a review queue. Moderators check that the link works, the des
 
 ### 4. Help someone else
 
-Browse products and tasks. Pick something you can actually finish. After you try it, leave feedback with signal — not just “nice.”
+Browse the help hall. Read the feedback type and the brief before you claim. After you try the product, answer the three questions and upload a usage screenshot. Copying the pitch or pasting the same text again will not pass the check.
 
 ### 5. Start your own push
 
-Earn sparks by fanning others’ flames, then spend them so your own product can spread.
+Having sparks is not enough. The product must be live, tryable, and have screenshots. The task must name a feedback type (first run / bug hunt / onboarding / copy review / bring a user) and a clear checklist. Creating a task freezes `reward × quota` sparks.
 
 ## What sparks are
 
-Sparks are contribution points.
+Sparks are contribution points. The price list is public and fixed. There is no subjective quality score.
 
 ```text
-Real use + useful feedback  → earn sparks
-Let your product spread          → spend sparks
+Sign-up grant: +20 sparks
+Finish a real trial report (three answers + screenshot, accepted) → task bounty
+Bring a user (that task type + evidence)                         → that task bounty
+Let your product spread                                          → spend the frozen sparks
 ```
 
-Sparks are not for buying fake users. They exist so people who help first get seen first. Ledgers, task acceptance, and anti-abuse rules are still being built.
+Votes, bookmarks, short comments, opening a link, repeating the pitch, or farming alts do not earn sparks. Owners review against the checklist. If they do not review in 48 hours, the claim auto-accepts. Admins spot-check accepted samples and can claw sparks back. The full ledger is in the account panel.
 
 ## Community rules
 
@@ -126,15 +128,17 @@ Sparks are not for buying fake users. They exist so people who help first get se
 
 ## Status
 
-| Capability                         | Status                           |
-| ---------------------------------- | -------------------------------- |
-| Product feed, filters, and search  | ✅ Live                          |
-| GitHub / email OTP sign-in         | ✅ Live                          |
-| Real submissions and review        | ✅ Live                          |
-| Status and rejection reasons       | ✅ Live                          |
-| Avatar / logo / product QR (S3)    | ✅ Live                          |
-| Mutual-aid tasks and sparks        | 🚧 UI prototype, being persisted |
-| Comments, bookmarks, notifications | 📋 Planned                       |
+| Capability                                 | Status  |
+| ------------------------------------------ | ------- |
+| Product feed, filters, and search          | ✅ Live |
+| GitHub / email OTP sign-in                 | ✅ Live |
+| Real submissions and review                | ✅ Live |
+| Status and rejection reasons               | ✅ Live |
+| Avatar / logo / product QR (S3)            | ✅ Live |
+| Mutual-aid tasks, ledger, checklist review | ✅ Live |
+| Help-request quality gates and spot-checks | ✅ Live |
+| Weekly real mutual-aid results             | ✅ Live |
+| Comments, bookmarks, notifications         | ✅ Live |
 
 ## Local quick start
 

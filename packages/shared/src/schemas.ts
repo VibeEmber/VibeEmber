@@ -2,10 +2,11 @@ import { z } from "zod";
 import {
   CREDIT,
   DESKTOP_PLATFORMS,
-  HELP_NEEDED_FALLBACK,
+  FEEDBACK_TYPES,
   MINI_PROGRAM_PLATFORMS,
   PROJECT_KINDS,
   PROJECT_LIMITS,
+  REJECT_REASONS,
   SOCIAL_PLATFORMS,
   SPARK,
   TOPICS,
@@ -68,12 +69,13 @@ export const projectCreateSchema = z
     helpNeeded: z
       .string()
       .trim()
-      .max(PROJECT_LIMITS.helpNeededMax, helpRange)
-      .transform((value) =>
-        value.length < PROJECT_LIMITS.helpNeededMin ? HELP_NEEDED_FALLBACK : value,
-      ),
+      .min(PROJECT_LIMITS.helpNeededMin, helpRange)
+      .max(PROJECT_LIMITS.helpNeededMax, helpRange),
     logoKey: objectKey("logos").nullish(),
-    screenshotKeys: z.array(objectKey("screenshots")).max(4).optional().default([]),
+    screenshotKeys: z
+      .array(objectKey("screenshots"))
+      .min(PROJECT_LIMITS.screenshotMin, "请至少上传 1 张产品截图")
+      .max(PROJECT_LIMITS.screenshotMax),
     extraQrKey: objectKey("qrs").nullish(),
   })
   .superRefine((value, ctx) => {
@@ -172,18 +174,27 @@ export type PresignInput = z.input<typeof presignSchema>;
 
 export const adminListQuerySchema = z.enum(["pending", "approved", "rejected"]).default("pending");
 
+const feedbackTypeIds = FEEDBACK_TYPES.map((item) => item.id) as [string, ...string[]];
+const rejectReasonIds = REJECT_REASONS.map((item) => item.id) as [string, ...string[]];
+
 export const taskCreateSchema = z.object({
   projectId: z.string().uuid("请选择有效项目"),
   title: z
     .string()
     .trim()
-    .min(PROJECT_LIMITS.taskTitleMin, "任务标题太短")
+    .min(PROJECT_LIMITS.taskTitleMin, "任务标题至少 8 个字")
     .max(PROJECT_LIMITS.taskTitleMax, "任务标题太长"),
   description: z
     .string()
     .trim()
-    .min(PROJECT_LIMITS.taskDescMin, "请把任务说明写清楚")
+    .min(PROJECT_LIMITS.taskDescMin, "任务说明至少 40 字，写清要别人做什么")
     .max(PROJECT_LIMITS.taskDescMax, "任务说明太长"),
+  feedbackType: z.enum(feedbackTypeIds, { message: "请选择想要的反馈类型" }),
+  checklist: z
+    .array(z.string().trim().min(4).max(80))
+    .min(PROJECT_LIMITS.checklistMin, "验收清单至少 2 条")
+    .max(PROJECT_LIMITS.checklistMax, "验收清单最多 4 条"),
+  allowPublicSnippet: z.boolean().optional().default(false),
   reward: z.coerce
     .number()
     .int()
@@ -195,24 +206,38 @@ export const taskCreateSchema = z.object({
 });
 export type TaskCreateInput = z.input<typeof taskCreateSchema>;
 
-export const claimSubmitSchema = z.object({
-  feedback: z
-    .string()
-    .trim()
-    .min(PROJECT_LIMITS.feedbackMin, `反馈至少 ${PROJECT_LIMITS.feedbackMin} 字`)
-    .max(PROJECT_LIMITS.feedbackMax, "反馈太长"),
-  screenshotKey: objectKey("screenshots").nullish(),
-});
+export const claimSubmitSchema = z
+  .object({
+    answers: z
+      .array(z.string().trim().min(PROJECT_LIMITS.answerMin).max(PROJECT_LIMITS.answerMax))
+      .length(3, "请按三问逐条作答"),
+    screenshotKey: objectKey("screenshots"),
+  })
+  .superRefine((value, ctx) => {
+    const joined = value.answers.join("");
+    if (joined.length < PROJECT_LIMITS.feedbackMin) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["answers"],
+        message: `三问合计至少 ${PROJECT_LIMITS.feedbackMin} 字`,
+      });
+    }
+  });
 export type ClaimSubmitInput = z.input<typeof claimSubmitSchema>;
 
 export const claimReviewSchema = z
   .object({
     action: z.enum(["accepted", "rejected"]),
+    rejectReason: z.enum(rejectReasonIds).optional(),
     note: z.string().trim().max(300).optional().default(""),
   })
-  .refine((value) => value.action !== "rejected" || value.note.length >= 2, {
-    message: "驳回时请说明原因",
-    path: ["note"],
+  .superRefine((value, ctx) => {
+    if (value.action === "rejected" && !value.rejectReason) {
+      ctx.addIssue({ code: "custom", path: ["rejectReason"], message: "请选择固定驳回原因" });
+    }
+    if (value.action === "rejected" && (value.note ?? "").length < 2) {
+      ctx.addIssue({ code: "custom", path: ["note"], message: "请补充至少 2 字说明" });
+    }
   });
 export type ClaimReviewInput = z.input<typeof claimReviewSchema>;
 

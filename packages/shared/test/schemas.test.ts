@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { claimSubmitSchema, projectCreateSchema, reviewSchema } from "../src/schemas";
+import {
+  claimSubmitSchema,
+  projectCreateSchema,
+  reviewSchema,
+  taskCreateSchema,
+} from "../src/schemas";
 
 const validProject = {
   name: "流光简历",
@@ -8,6 +13,7 @@ const validProject = {
   kind: "web",
   topics: ["效率"],
   helpNeeded: "希望 20 位用户体验组队功能并留下反馈",
+  screenshotKeys: ["screenshots/demo.webp"],
 };
 
 describe("projectCreateSchema", () => {
@@ -36,9 +42,14 @@ describe("projectCreateSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("falls back helpNeeded", () => {
-    const result = projectCreateSchema.parse({ ...validProject, helpNeeded: "" });
-    expect(result.helpNeeded).toBe("征集真实体验与反馈");
+  it("rejects short helpNeeded", () => {
+    const result = projectCreateSchema.safeParse({ ...validProject, helpNeeded: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("requires a product screenshot", () => {
+    const result = projectCreateSchema.safeParse({ ...validProject, screenshotKeys: [] });
+    expect(result.success).toBe(false);
   });
 });
 
@@ -54,8 +65,36 @@ describe("reviewSchema", () => {
 });
 
 describe("claimSubmitSchema", () => {
-  it("rejects short feedback", () => {
-    const result = claimSubmitSchema.safeParse({ feedback: "太短了" });
+  it("rejects short answers", () => {
+    const result = claimSubmitSchema.safeParse({
+      answers: ["太短了", "还是短", "依旧短"],
+      screenshotKey: "screenshots/demo.webp",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("requires a screenshot", () => {
+    const result = claimSubmitSchema.safeParse({
+      answers: [
+        "我打开首页走完了登录和创建房间",
+        "组队确认页不知道下一步点哪里",
+        "会再打开，因为真的能解决晚饭问题",
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("taskCreateSchema", () => {
+  it("requires feedback type and checklist", () => {
+    const result = taskCreateSchema.safeParse({
+      projectId: "10000000-0000-4000-8000-000000000001",
+      title: "体验一下",
+      description: "请认真体验",
+      reward: 10,
+      quota: 5,
+      deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    });
     expect(result.success).toBe(false);
   });
 });

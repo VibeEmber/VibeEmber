@@ -17,7 +17,7 @@ export function Footer() {
       <div className="footer-links">
         <a href="#discover">星火</a>
         <a href="#help">助燃</a>
-        <a href="#how">社区公约</a>
+        <a href="#rules">社区公约</a>
         <a href="mailto:hello@vibeember.dev">联系我们</a>
       </div>
       <span>© 2026 星火场 · VibeEmber</span>

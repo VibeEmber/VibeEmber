@@ -124,8 +124,9 @@ export class AdminOpsController {
         claimId: row.claimId,
         taskTitle: row.claim.task.title,
         reason: row.reason,
+        kind: row.kind,
         status: row.status,
-        reporterName: row.reporter.name,
+        reporterName: row.kind === "spot_check" ? "系统抽查" : row.reporter.name,
         createdAt: row.createdAt.toISOString(),
       })),
     };
@@ -152,7 +153,11 @@ export class AdminOpsController {
         resolvedAt: new Date(),
       },
     });
-    if (body.action === "upheld" && report.claim.status === "rejected") {
+    if (
+      body.action === "upheld" &&
+      report.kind !== "spot_check" &&
+      report.claim.status === "rejected"
+    ) {
       await this.prisma.taskClaim.update({
         where: { id: report.claimId },
         data: {
@@ -174,6 +179,49 @@ export class AdminOpsController {
         userId: report.claim.userId,
         type: "report_upheld",
         title: "你的举报成立，火苗已补发",
+        refType: "claim",
+        refId: report.claimId,
+      });
+    }
+    if (
+      body.action === "upheld" &&
+      report.kind === "spot_check" &&
+      report.claim.status === "accepted"
+    ) {
+      await this.prisma.taskClaim.update({
+        where: { id: report.claimId },
+        data: {
+          status: "rejected",
+          reviewNote: `抽查未通过：${body.resolution}`,
+          reviewedAt: new Date(),
+        },
+      });
+      await this.prisma.task.update({
+        where: { id: report.claim.taskId },
+        data: { acceptedCount: { decrement: 1 } },
+      });
+      await this.sparks.apply({
+        userId: report.claim.userId,
+        amount: -report.claim.task.reward,
+        type: "admin_adjust",
+        refType: "report",
+        refId: report.id,
+        memo: "抽查未通过，追回任务赏金",
+      });
+      await this.sparks.apply({
+        userId: report.claim.task.ownerId,
+        amount: report.claim.task.reward,
+        type: "admin_adjust",
+        refType: "report",
+        refId: report.id,
+        memo: "抽查追回，退回已支付赏金",
+      });
+      await this.credit.adjust(report.claim.userId, CREDIT.rejectDelta);
+      await this.notify.push({
+        userId: report.claim.userId,
+        type: "spot_check_upheld",
+        title: "抽查未通过，火苗已追回",
+        body: body.resolution,
         refType: "claim",
         refId: report.claimId,
       });

@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@vibeember/shared";
-import type { ProjectPublic, TaskClaimItem } from "@vibeember/shared";
-import { fallbackProjects } from "@/data/fallback";
+import type { CommunityWeek, ProjectPublic, TaskClaimItem } from "@vibeember/shared";
 import { useAppSession } from "@/lib/session";
 import { projectPalettes, type DisplayProject } from "@/lib/types";
 import { AccountModal } from "./modals/account-modal";
@@ -58,6 +57,7 @@ export function Home() {
   const [activeClaim, setActiveClaim] = useState<TaskClaimItem | null>(null);
   const [toast, setToast] = useState("");
   const [liveProjects, setLiveProjects] = useState<DisplayProject[]>([]);
+  const [week, setWeek] = useState<CommunityWeek | null>(null);
 
   const notify = useCallback((message: string) => {
     setToast(message);
@@ -77,10 +77,12 @@ export function Home() {
     let cancelled = false;
     void (async () => {
       try {
-        const data = await api.listProjects();
-        if (!cancelled) setLiveProjects(data.projects.map(toDisplayProject));
+        const [data, weekData] = await Promise.all([api.listProjects(), api.communityWeek()]);
+        if (cancelled) return;
+        setLiveProjects(data.projects.map(toDisplayProject));
+        setWeek(weekData);
       } catch {
-        // API 暂不可用时保留精选首发集展示
+        // API 暂不可用时保留已加载数据
       }
     })();
     return () => {
@@ -88,7 +90,7 @@ export function Home() {
     };
   }, []);
 
-  const allProjects = useMemo(() => [...liveProjects, ...fallbackProjects], [liveProjects]);
+  const allProjects = liveProjects;
 
   const visibleProjects = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -164,8 +166,8 @@ export function Home() {
         onOpenSubmit={openSubmit}
         onOpenAccount={openAccount}
       />
-      <Hero onOpenSubmit={openSubmit} />
-      <Ticker />
+      <Hero week={week} onOpenSubmit={openSubmit} />
+      <Ticker week={week} />
       <Discover
         projects={visibleProjects}
         total={allProjects.length}
@@ -176,6 +178,7 @@ export function Home() {
         resetFilters={resetFilters}
         voted={voted}
         onToggleVote={(id) => void toggleVote(id)}
+        week={week}
         onNotify={notify}
         onOpenSearch={() => {
           setShowSearch(true);
@@ -184,12 +187,21 @@ export function Home() {
       />
       <HelpSection
         loggedIn={Boolean(user)}
+        week={week}
         onNotify={notify}
         onNeedAuth={() => {
           setShowAuth(true);
           notify("登录后才能领取任务");
         }}
         onOpenClaim={openClaim}
+        onOpenLedger={() => {
+          if (!user) {
+            setShowAuth(true);
+            notify("登录后查看火苗账本");
+            return;
+          }
+          setShowAccount(true);
+        }}
       />
       <HowItWorks />
       <Footer />

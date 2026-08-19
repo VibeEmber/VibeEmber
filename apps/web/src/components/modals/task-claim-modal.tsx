@@ -24,7 +24,9 @@ function stepIndex(status: string): number {
 
 export function TaskClaimModal({ claim, onClose, onNotify, onChanged }: TaskClaimModalProps) {
   const [status, setStatus] = useState(claim.status);
-  const [feedback, setFeedback] = useState(claim.feedback);
+  const [answers, setAnswers] = useState<string[]>(
+    claim.answers.length === 3 ? claim.answers : ["", "", ""],
+  );
   const [screenshot, setScreenshot] = useState<{ key: string; publicUrl: string } | null>(
     claim.screenshotUrl ? { key: "", publicUrl: claim.screenshotUrl } : null,
   );
@@ -36,7 +38,15 @@ export function TaskClaimModal({ claim, onClose, onNotify, onChanged }: TaskClai
   const active = stepIndex(status);
   const failed = status === "rejected";
   const done = status === "accepted";
-  const minLength = PROJECT_LIMITS.feedbackMin;
+  const questions =
+    claim.questions.length === 3
+      ? claim.questions
+      : ["你做了哪几步？", "卡在哪，或哪里觉得惊喜？", "会不会再打开？为什么？"];
+  const joined = answers.join("").trim();
+  const ready =
+    Boolean(screenshot?.key || screenshot?.publicUrl) &&
+    answers.every((item) => item.trim().length >= PROJECT_LIMITS.answerMin) &&
+    joined.length >= PROJECT_LIMITS.feedbackMin;
 
   const pickScreenshot = async (file: File | undefined) => {
     if (!file) return;
@@ -54,9 +64,13 @@ export function TaskClaimModal({ claim, onClose, onNotify, onChanged }: TaskClai
   const submit = async () => {
     setBusy(true);
     try {
+      if (!screenshot?.key) {
+        onNotify("请上传一张使用截图");
+        return;
+      }
       await api.submitClaim(claim.id, {
-        feedback,
-        screenshotKey: screenshot?.key || null,
+        answers,
+        screenshotKey: screenshot.key,
       });
       setStatus("submitted");
       onNotify("反馈已提交，等待发起人验收");
@@ -135,21 +149,28 @@ export function TaskClaimModal({ claim, onClose, onNotify, onChanged }: TaskClai
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            if (feedback.trim().length < minLength) return;
+            if (!ready) return;
             void submit();
           }}
         >
-          <label>
-            真实体验反馈（至少 {minLength} 字，现在 {feedback.trim().length} 字）
-            <textarea
-              value={feedback}
-              onChange={(event) => setFeedback(event.target.value)}
-              minLength={minLength}
-              maxLength={PROJECT_LIMITS.feedbackMax}
-              placeholder="你做了什么？哪一步卡住 / 惊喜？愿意推荐给谁？"
-              style={{ minHeight: 120 }}
-            />
-          </label>
+          {questions.map((question, index) => (
+            <label key={question}>
+              {question}（至少 {PROJECT_LIMITS.answerMin} 字）
+              <textarea
+                value={answers[index]}
+                onChange={(event) =>
+                  setAnswers((current) =>
+                    current.map((item, itemIndex) =>
+                      itemIndex === index ? event.target.value : item,
+                    ),
+                  )
+                }
+                minLength={PROJECT_LIMITS.answerMin}
+                maxLength={PROJECT_LIMITS.answerMax}
+                style={{ minHeight: 72 }}
+              />
+            </label>
+          ))}
           <div className="upload-field">
             <span className="logo-chip">
               {screenshot ? <img src={screenshot.publicUrl} alt="截图" /> : <ImagePlus size={18} />}
@@ -160,9 +181,9 @@ export function TaskClaimModal({ claim, onClose, onNotify, onChanged }: TaskClai
                 className="upload-button"
                 onClick={() => fileRef.current?.click()}
               >
-                {screenshot ? "更换截图" : "上传体验截图（可选）"}
+                {screenshot ? "更换截图" : "上传使用截图（必填）"}
               </button>
-              <small>截图会展示给发起人，提高验收通过率</small>
+              <small>没有截图不能提交。机器先核验字数和查重，再交给发起人按清单验收。</small>
             </div>
             <input
               ref={fileRef}
@@ -181,11 +202,7 @@ export function TaskClaimModal({ claim, onClose, onNotify, onChanged }: TaskClai
             >
               取消领取
             </button>
-            <button
-              className="primary-button"
-              type="submit"
-              disabled={busy || feedback.trim().length < minLength}
-            >
+            <button className="primary-button" type="submit" disabled={busy || !ready}>
               {busy ? (
                 <>
                   <LoaderCircle className="spin" size={17} /> 提交中

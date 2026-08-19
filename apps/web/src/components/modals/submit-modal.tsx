@@ -27,16 +27,19 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
   const [topics, setTopics] = useState<Array<(typeof TOPICS)[number]>>(["效率"]);
   const [logo, setLogo] = useState<{ key: string; publicUrl: string } | null>(null);
   const [qr, setQr] = useState<{ key: string; publicUrl: string } | null>(null);
+  const [screenshots, setScreenshots] = useState<Array<{ key: string; publicUrl: string }>>([]);
   const logoRef = useRef<HTMLInputElement>(null);
   const qrRef = useRef<HTMLInputElement>(null);
+  const shotRef = useRef<HTMLInputElement>(null);
 
-  const pick = async (kindName: "logo" | "qr", file?: File) => {
+  const pick = async (kindName: "logo" | "qr" | "screenshot", file?: File) => {
     if (!file) return;
     if (file.size > UPLOAD_MAX_BYTES) return onNotify("图片不能超过 2MB");
     try {
-      const uploaded = await uploadFile(kindName, file);
+      const uploaded = await uploadFile(kindName === "screenshot" ? "screenshot" : kindName, file);
       if (kindName === "logo") setLogo(uploaded);
-      else setQr(uploaded);
+      else if (kindName === "qr") setQr(uploaded);
+      else setScreenshots((current) => [...current, uploaded].slice(0, 4));
     } catch (error) {
       onNotify(error instanceof Error ? error.message : "上传失败");
     }
@@ -75,6 +78,7 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
         },
         helpNeeded: String(values.get("helpNeeded") ?? ""),
         logoKey: logo?.key,
+        screenshotKeys: screenshots.map((item) => item.key),
         extraQrKey: qr?.key,
       });
       onSubmitted("提交成功，项目已进入审核队列");
@@ -102,7 +106,8 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
           <li>发起时按「赏金 × 名额」冻结火苗，验收通过后支付给帮忙者</li>
         </ol>
         <small>
-          门槛：需要一个已通过审核的项目；注册赠送 20 火苗，不够可先去
+          门槛：产品要有可体验入口和至少 1 张截图；发起助燃还要写清反馈类型。注册赠送 20
+          火苗，不够可先去
           <a href="#help" onClick={onClose}>
             助燃厅
           </a>
@@ -223,6 +228,32 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
             onChange={(e) => void pick("logo", e.target.files?.[0])}
           />
         </div>
+        <div className="upload-field">
+          <span className="logo-chip">
+            {screenshots[0] ? (
+              <img src={screenshots[0].publicUrl} alt="产品截图" />
+            ) : (
+              <ImagePlus size={18} />
+            )}
+          </span>
+          <div>
+            <button
+              type="button"
+              className="upload-button"
+              onClick={() => shotRef.current?.click()}
+            >
+              {screenshots.length ? `已上传 ${screenshots.length} 张截图` : "上传产品截图"}
+            </button>
+            <small>至少 1 张，最多 4 张。没有可看的界面，不能发起助燃。</small>
+          </div>
+          <input
+            ref={shotRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            hidden
+            onChange={(e) => void pick("screenshot", e.target.files?.[0])}
+          />
+        </div>
         {(kind === "mini_program" || kind === "social") && (
           <div className="upload-field">
             <span className="logo-chip">
@@ -252,12 +283,12 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
           <textarea
             name="helpNeeded"
             required
-            minLength={2}
+            minLength={20}
             maxLength={300}
-            placeholder="例如：希望 20 位用户体验组队功能…"
+            placeholder="例如：希望 20 位用户走完组队流程，反馈卡在哪一步…"
           />
         </label>
-        <button className="primary-button" type="submit" disabled={busy}>
+        <button className="primary-button" type="submit" disabled={busy || screenshots.length < 1}>
           {busy ? (
             <>
               <LoaderCircle className="spin" size={17} /> 正在提交

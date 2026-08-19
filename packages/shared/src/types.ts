@@ -55,6 +55,7 @@ export interface SparkLedgerItem {
   amount: number;
   balanceAfter: number;
   type: string;
+  typeLabel: string;
   memo: string;
   createdAt: string;
 }
@@ -67,6 +68,11 @@ export interface TaskPublic {
   ownerName: string;
   title: string;
   description: string;
+  feedbackType: string;
+  feedbackTypeLabel: string;
+  checklist: string[];
+  questions: string[];
+  allowPublicSnippet: boolean;
   reward: number;
   quota: number;
   claimedCount: number;
@@ -86,11 +92,41 @@ export interface TaskClaimItem {
   userAvatarUrl: string | null;
   status: string;
   feedback: string;
+  answers: string[];
+  questions: string[];
+  checklist: string[];
+  feedbackType: string;
   screenshotUrl: string | null;
   reviewNote: string;
+  autoAccepted: boolean;
   claimedAt: string;
   submitBy: string;
   submittedAt: string | null;
+}
+
+export interface CommunityWeek {
+  memberCount: number;
+  acceptedCount: number;
+  helpedProjectCount: number;
+  helperCount: number;
+  invitedUserCount: number;
+  cases: Array<{
+    projectId: string;
+    projectName: string;
+    acceptedCount: number;
+    snippet: string | null;
+  }>;
+  helpers: Array<{
+    userId: string;
+    name: string;
+    acceptedCount: number;
+  }>;
+  recent: Array<{
+    helperName: string;
+    projectName: string;
+    feedbackTypeLabel: string;
+    createdAt: string;
+  }>;
 }
 
 export interface CommentItem {
@@ -131,6 +167,7 @@ export interface TaskReportItem {
   claimId: string;
   taskTitle: string;
   reason: string;
+  kind: string;
   status: string;
   reporterName: string;
   createdAt: string;

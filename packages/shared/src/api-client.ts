@@ -10,6 +10,7 @@ import type {
 } from "./schemas.js";
 import type {
   CommentItem,
+  CommunityWeek,
   NotificationItem,
   ProjectPrivate,
   ProjectPublic,
@@ -75,6 +76,7 @@ export const api = {
   ledger: () => apiFetch<SparkLedgerItem[]>("/api/me/ledger"),
   myClaims: () => apiFetch<TaskClaimItem[]>("/api/me/claims"),
   pendingReviews: () => apiFetch<TaskClaimItem[]>("/api/me/reviews"),
+  communityWeek: () => apiFetch<CommunityWeek>("/api/community/week"),
   listTasks: () => apiFetch<TaskPublic[]>("/api/tasks"),
   createTask: (input: TaskCreateInput) =>
     apiFetch<{ id: string; status: string }>("/api/tasks", {

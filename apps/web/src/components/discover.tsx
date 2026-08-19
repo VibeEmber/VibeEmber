@@ -1,8 +1,8 @@
 "use client";
 
 import { ArrowRight, ChevronRight, CircleHelp, Flame, Search, Star } from "lucide-react";
-import { PROJECT_KINDS } from "@vibeember/shared";
-import { categoryFilters, leaderboard } from "@/data/fallback";
+import { PROJECT_KINDS, type CommunityWeek } from "@vibeember/shared";
+import { categoryFilters } from "@/data/fallback";
 import { ProjectCard } from "./project-card";
 import type { DisplayProject } from "@/lib/types";
 
@@ -16,6 +16,7 @@ interface DiscoverProps {
   resetFilters: () => void;
   voted: Array<number | string>;
   onToggleVote: (id: number | string) => void;
+  week: CommunityWeek | null;
   onNotify: (message: string) => void;
   onOpenSearch: () => void;
 }
@@ -30,6 +31,7 @@ export function Discover({
   resetFilters,
   voted,
   onToggleVote,
+  week,
   onNotify,
   onOpenSearch,
 }: DiscoverProps) {
@@ -114,22 +116,25 @@ export function Discover({
             </span>
             <h3>先伸手的人，值得被看见</h3>
             <ol>
-              {leaderboard.map((user, index) => (
-                <li key={user[0]}>
+              {(week?.helpers ?? []).map((user, index) => (
+                <li key={user.userId}>
                   <span className={`rank rank-${index + 1}`}>{index + 1}</span>
-                  <span className="leader-avatar">{user[3]}</span>
+                  <span className="leader-avatar">{user.name.slice(0, 1)}</span>
                   <div>
-                    <b>{user[0]}</b>
-                    <small>{user[1]}</small>
+                    <b>{user.name}</b>
+                    <small>本周有效助燃</small>
                   </div>
                   <strong>
-                    {user[2]} <i>pts</i>
+                    {user.acceptedCount} <i>次</i>
                   </strong>
                 </li>
               ))}
             </ol>
-            <button onClick={() => onNotify("已打开完整贡献榜")}>
-              查看完整榜单 <ChevronRight size={16} />
+            {(week?.helpers.length ?? 0) === 0 && (
+              <p className="form-hint">本周还没有被验收通过的助燃。</p>
+            )}
+            <button onClick={() => onNotify("榜单按本周验收通过次数排序")}>
+              按真实验收计次 <ChevronRight size={16} />
             </button>
           </div>
           <div className="side-card idea-card">

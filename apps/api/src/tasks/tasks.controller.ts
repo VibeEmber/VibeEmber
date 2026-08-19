@@ -54,7 +54,7 @@ export class ClaimsController {
     @Param("id") id: string,
     @Body(new ZodValidationPipe(claimSubmitSchema)) body: ClaimSubmitInput,
   ) {
-    return this.tasks.submit(user, id, body.feedback, body.screenshotKey);
+    return this.tasks.submit(user, id, body.answers, body.screenshotKey);
   }
 
   @Post(":id/cancel")
@@ -68,7 +68,7 @@ export class ClaimsController {
     @Param("id") id: string,
     @Body(new ZodValidationPipe(claimReviewSchema)) body: ClaimReviewInput,
   ) {
-    return this.tasks.review(user, id, body.action, body.note ?? "");
+    return this.tasks.review(user, id, body.action, body.note ?? "", body.rejectReason);
   }
 
   @Post(":id/report")

@@ -68,6 +68,7 @@ const seedProjects = [
     kind: "web" as const,
     topics: ["AI", "效率"],
     helpNeeded: "征集 20 位求职者体验 AI 改写功能并反馈效果",
+    extras: {},
     approvedAt: new Date(now - 1 * day),
   },
   {
@@ -78,6 +79,7 @@ const seedProjects = [
     url: "https://demo.vibeember.dev/fandouzi",
     kind: "mini_program" as const,
     topics: ["生活方式"],
+    extras: { miniPlatform: "微信" },
     helpNeeded: "征集 30 位上海用户体验组队吃饭功能",
     approvedAt: new Date(now - 2 * day),
   },
@@ -89,6 +91,7 @@ const seedProjects = [
     url: "https://demo.vibeember.dev/tabtab",
     kind: "desktop" as const,
     topics: ["效率", "AI"],
+    extras: { downloadUrl: "https://demo.vibeember.dev/tabtab" },
     helpNeeded: "安装插件，完成 10 分钟真实体验并留下建议",
     approvedAt: new Date(now - 3 * day),
   },
@@ -122,6 +125,7 @@ const seedProjects = [
     url: "https://demo.vibeember.dev/weekend-go",
     kind: "mobile_app" as const,
     topics: ["生活方式"],
+    extras: { iosUrl: "https://demo.vibeember.dev/weekend-go" },
     helpNeeded: "征集 20 位同城用户测试一键生成周末计划",
     approvedAt: new Date(now - 6 * day),
   },
@@ -145,7 +149,11 @@ async function main(): Promise<void> {
     const createdAt = new Date(project.approvedAt.getTime() - 12 * 60 * 60 * 1000);
     await prisma.project.upsert({
       where: { id: project.id },
-      update: { kind: project.kind, topics: [...project.topics] },
+      update: {
+        kind: project.kind,
+        topics: [...project.topics],
+        extras: "extras" in project ? project.extras : {},
+      },
       create: {
         ...project,
         status: "approved",
@@ -155,17 +163,47 @@ async function main(): Promise<void> {
         updatedAt: project.approvedAt,
       },
     });
+    await prisma.projectAsset.upsert({
+      where: { id: `asset-${project.id}` },
+      update: {},
+      create: {
+        id: `asset-${project.id}`,
+        projectId: project.id,
+        kind: "screenshot",
+        key: `screenshots/${project.id}.webp`,
+        sort: 0,
+      },
+    });
+    if (project.kind === "mini_program") {
+      await prisma.projectAsset.upsert({
+        where: { id: `qr-${project.id}` },
+        update: {},
+        create: {
+          id: `qr-${project.id}`,
+          projectId: project.id,
+          kind: "qr",
+          key: `qrs/${project.id}.webp`,
+          sort: 0,
+        },
+      });
+    }
   }
 
   await prisma.task.upsert({
     where: { id: "20000000-0000-4000-8000-000000000001" },
-    update: {},
+    update: {
+      feedbackType: "first_run",
+      checklist: ["走完组队主流程", "说明卡住或惊喜的一步", "附上关键页截图"],
+      description: "打开饭搭子，完成一次组队流程，写下你卡住或惊喜的地方，并附上关键页截图。",
+    },
     create: {
       id: "20000000-0000-4000-8000-000000000001",
       projectId: "10000000-0000-4000-8000-000000000002",
       ownerId: "00000000-0000-4000-8000-000000000012",
       title: "体验组队吃饭并留下卡点",
-      description: "打开饭搭子，完成一次组队流程，写下你卡住或惊喜的地方。",
+      description: "打开饭搭子，完成一次组队流程，写下你卡住或惊喜的地方，并附上关键页截图。",
+      feedbackType: "first_run",
+      checklist: ["走完组队主流程", "说明卡住或惊喜的一步", "附上关键页截图"],
       reward: 10,
       quota: 8,
       frozenAmount: 80,

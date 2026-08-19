@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import type { Prisma, SparkType } from "@vibeember/database";
-import { SPARK } from "@vibeember/shared";
+import { SPARK, SPARK_TYPE_LABELS } from "@vibeember/shared";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
@@ -101,6 +101,7 @@ export class SparkService {
       amount: row.amount,
       balanceAfter: row.balanceAfter,
       type: row.type,
+      typeLabel: SPARK_TYPE_LABELS[row.type] ?? row.type,
       memo: row.memo,
       createdAt: row.createdAt.toISOString(),
     }));

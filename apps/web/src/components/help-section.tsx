@@ -2,16 +2,31 @@
 
 import { ArrowRight, Check, Clock3, Flame, Target, Users } from "lucide-react";
 import { useEffect, useState } from "react";
-import { api, type SparkSummary, type TaskClaimItem, type TaskPublic } from "@vibeember/shared";
+import {
+  api,
+  type CommunityWeek,
+  type SparkSummary,
+  type TaskClaimItem,
+  type TaskPublic,
+} from "@vibeember/shared";
 
 interface HelpSectionProps {
   loggedIn: boolean;
+  week: CommunityWeek | null;
   onNotify: (message: string) => void;
   onNeedAuth: () => void;
   onOpenClaim: (claim: TaskClaimItem) => void;
+  onOpenLedger: () => void;
 }
 
-export function HelpSection({ loggedIn, onNotify, onNeedAuth, onOpenClaim }: HelpSectionProps) {
+export function HelpSection({
+  loggedIn,
+  week,
+  onNotify,
+  onNeedAuth,
+  onOpenClaim,
+  onOpenLedger,
+}: HelpSectionProps) {
   const [tasks, setTasks] = useState<TaskPublic[]>([]);
   const [sparks, setSparks] = useState<SparkSummary | null>(null);
   const [myClaims, setMyClaims] = useState<TaskClaimItem[]>([]);
@@ -73,8 +88,13 @@ export function HelpSection({ loggedIn, onNotify, onNeedAuth, onOpenClaim }: Hel
         userAvatarUrl: null,
         status: "claimed",
         feedback: "",
+        answers: ["", "", ""],
+        questions: task.questions,
+        checklist: task.checklist,
+        feedbackType: task.feedbackType,
         screenshotUrl: null,
         reviewNote: "",
+        autoAccepted: false,
         claimedAt: new Date().toISOString(),
         submitBy: res.submitBy,
         submittedAt: null,
@@ -104,8 +124,8 @@ export function HelpSection({ loggedIn, onNotify, onNeedAuth, onOpenClaim }: Hel
               <Flame size={18} fill="currentColor" /> 我的火苗
             </span>
             <strong>{sparks ? sparks.available : "--"}</strong>
-            <button onClick={() => onNotify(loggedIn ? "去完成一个体验任务吧" : "登录后查看火苗")}>
-              {sparks ? `冻结 ${sparks.frozen}` : "+赚火苗"}
+            <button onClick={onOpenLedger}>
+              {sparks ? `账本 · 冻 ${sparks.frozen}` : "+赚火苗"}
             </button>
           </div>
         </div>
@@ -131,9 +151,11 @@ export function HelpSection({ loggedIn, onNotify, onNeedAuth, onOpenClaim }: Hel
               <div className="task-main">
                 <div className="task-name">
                   <b>{task.projectName}</b>
+                  <span>{task.feedbackTypeLabel}</span>
                   <span>{task.reward} 火苗</span>
                 </div>
                 <h3>{task.title}</h3>
+                <p className="task-desc">{task.description}</p>
                 <div className="progress-row">
                   <div className="progress-track">
                     <i
@@ -173,7 +195,10 @@ export function HelpSection({ loggedIn, onNotify, onNeedAuth, onOpenClaim }: Hel
         </div>
         <div className="help-footer">
           <span>
-            <Target size={17} /> 提交至少 40 字真实反馈（可附截图），由发起人验收后才记火苗。
+            <Target size={17} />
+            {week
+              ? `本周已产生 ${week.acceptedCount} 条有效反馈，${week.helpedProjectCount} 个产品被真实用过。`
+              : "按三问提交真实反馈并附截图，发起人按清单验收后才记火苗。"}
           </span>
         </div>
       </div>

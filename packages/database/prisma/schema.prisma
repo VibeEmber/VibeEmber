@@ -48,6 +48,19 @@ enum ReportStatus {
   dismissed
 }
 
+enum ReportKind {
+  report
+  spot_check
+}
+
+enum FeedbackType {
+  first_run
+  bug_hunt
+  onboarding
+  copy_review
+  invite_user
+}
+
 enum SparkType {
   signup_bonus
   task_freeze
@@ -221,12 +234,15 @@ model Task {
   quota         Int
   claimedCount  Int        @default(0)
   acceptedCount Int        @default(0)
-  frozenAmount  Int
-  status        TaskStatus @default(open)
-  deadline      DateTime
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  claims        TaskClaim[]
+  frozenAmount        Int
+  status              TaskStatus    @default(open)
+  feedbackType        FeedbackType  @default(first_run)
+  checklist           Json          @default("[]")
+  allowPublicSnippet  Boolean       @default(false)
+  deadline            DateTime
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  claims              TaskClaim[]
 
   @@index([status, deadline])
   @@index([projectId])
@@ -241,8 +257,10 @@ model TaskClaim {
   userId        String
   status        ClaimStatus  @default(claimed)
   feedback      String       @default("")
+  answers       Json         @default("[]")
   screenshotKey String?
   reviewNote    String       @default("")
+  autoAccepted  Boolean      @default(false)
   claimedAt     DateTime     @default(now())
   submitBy      DateTime
   submittedAt   DateTime?
@@ -261,6 +279,7 @@ model TaskReport {
   reporter    User         @relation("Reporter", fields: [reporterId], references: [id])
   reporterId  String
   reason      String
+  kind        ReportKind   @default(report)
   status      ReportStatus @default(pending)
   resolver    User?        @relation("ReportResolver", fields: [resolverId], references: [id])
   resolverId  String?

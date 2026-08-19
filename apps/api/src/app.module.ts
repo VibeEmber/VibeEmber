@@ -3,6 +3,7 @@ import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { AdminModule } from "./admin/admin.module";
 import { AuthModule } from "./auth/auth.module";
+import { CommunityModule } from "./community/community.module";
 import { CreditModule } from "./credit/credit.module";
 import { HealthModule } from "./health/health.module";
 import { MailModule } from "./mail/mail.module";
@@ -32,6 +33,7 @@ import { UsersModule } from "./users/users.module";
     AuthModule,
     HealthModule,
     ProjectsModule,
+    CommunityModule,
     AdminModule,
     UploadsModule,
     MeModule,

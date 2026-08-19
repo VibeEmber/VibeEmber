@@ -154,6 +154,21 @@ async function main() {
       fail("MinIO 直传", `status ${putRes.status}`);
     }
 
+    const shotPresignRes = await apiFetch("/uploads/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", cookie },
+      body: JSON.stringify({ kind: "screenshot", contentType: "image/png" }),
+    });
+    const shotPresign = await shotPresignRes.json();
+    if (!shotPresignRes.ok || !shotPresign.key)
+      throw new Error(`截图预签名失败 ${JSON.stringify(shotPresign)}`);
+    const shotPut = await fetch(shotPresign.url, {
+      method: "PUT",
+      headers: { "Content-Type": "image/png" },
+      body: png,
+    });
+    if (!shotPut.ok) throw new Error(`截图上传失败 ${shotPut.status}`);
+
     const createRes = await apiFetch("/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json", cookie },
@@ -161,8 +176,10 @@ async function main() {
         name: "冒烟测试产品",
         tagline: "用来验证投稿审核与二维码生成",
         url: "https://example.com/smoke-test",
-        category: "其他",
+        kind: "web",
+        topics: ["工具"],
         helpNeeded: "需要 10 位真实用户体验并留下反馈",
+        screenshotKeys: [shotPresign.key],
       }),
     });
     const created = await createRes.json();

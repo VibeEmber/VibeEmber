@@ -1,13 +1,17 @@
 "use client";
 
 import { ArrowRight, Check, ChevronRight, MessageCircle, Sparkles } from "lucide-react";
+import type { CommunityWeek } from "@vibeember/shared";
 import { EmberMark } from "./ember-mark";
 
 interface HeroProps {
+  week: CommunityWeek | null;
   onOpenSubmit: () => void;
 }
 
-export function Hero({ onOpenSubmit }: HeroProps) {
+export function Hero({ week, onOpenSubmit }: HeroProps) {
+  const cases = week?.cases ?? [];
+  const memberCount = week?.memberCount ?? 0;
   return (
     <section className="hero" id="top">
       <div className="hero-copy">
@@ -39,7 +43,7 @@ export function Hero({ onOpenSubmit }: HeroProps) {
             <span>麦</span>
             <span>V</span>
           </div>
-          <strong>2,086</strong>
+          <strong>{memberCount || "--"}</strong>
           <span>位独立开发者已入场</span>
         </div>
       </div>
@@ -57,41 +61,73 @@ export function Hero({ onOpenSubmit }: HeroProps) {
           <EmberMark size={36} />
           <span>星火正旺</span>
         </div>
-        <article className="float-card card-a">
-          <span className="mini-icon coral">饭</span>
-          <div>
-            <b>饭搭子</b>
-            <small>获得 6 位新用户</small>
-          </div>
-          <em>+6</em>
-        </article>
-        <article className="float-card card-b">
-          <span className="mini-icon blue">T</span>
-          <div>
-            <b>TabTab</b>
-            <small>收到新反馈</small>
-          </div>
-          <MessageCircle size={17} />
-        </article>
-        <article className="float-card card-c">
-          <span className="mini-icon green">言</span>
-          <div>
-            <b>方言星球</b>
-            <small>达成里程碑</small>
-          </div>
-          <Check size={16} />
-        </article>
+        {cases[0] ? (
+          <article className="float-card card-a">
+            <span className="mini-icon coral">{cases[0].projectName.slice(0, 1)}</span>
+            <div>
+              <b>{cases[0].projectName}</b>
+              <small>本周获得 {cases[0].acceptedCount} 条有效反馈</small>
+            </div>
+            <em>+{cases[0].acceptedCount}</em>
+          </article>
+        ) : (
+          <article className="float-card card-a">
+            <span className="mini-icon coral">火</span>
+            <div>
+              <b>本周互助还在攒火</b>
+              <small>完成一次真实体验就会出现在这里</small>
+            </div>
+          </article>
+        )}
+        {cases[1] ? (
+          <article className="float-card card-b">
+            <span className="mini-icon blue">{cases[1].projectName.slice(0, 1)}</span>
+            <div>
+              <b>{cases[1].projectName}</b>
+              <small>{cases[1].snippet || "收到新的有效反馈"}</small>
+            </div>
+            <MessageCircle size={17} />
+          </article>
+        ) : (
+          <article className="float-card card-b">
+            <span className="mini-icon blue">助</span>
+            <div>
+              <b>先帮别人一把</b>
+              <small>按清单提交，火苗才入账</small>
+            </div>
+            <MessageCircle size={17} />
+          </article>
+        )}
+        {cases[2] ? (
+          <article className="float-card card-c">
+            <span className="mini-icon green">{cases[2].projectName.slice(0, 1)}</span>
+            <div>
+              <b>{cases[2].projectName}</b>
+              <small>本周 {cases[2].acceptedCount} 人真实用过</small>
+            </div>
+            <Check size={16} />
+          </article>
+        ) : (
+          <article className="float-card card-c">
+            <span className="mini-icon green">验</span>
+            <div>
+              <b>验收只看清单</b>
+              <small>不打分，通过就给赏金</small>
+            </div>
+            <Check size={16} />
+          </article>
+        )}
         <div className="spark spark-a">✦</div>
         <div className="spark spark-b">✦</div>
         <div className="spark spark-c">·</div>
         <div className="board-stats">
           <div>
-            <b>168</b>
-            <span>本周新作品</span>
+            <b>{week?.helpedProjectCount ?? 0}</b>
+            <span>本周被帮助产品</span>
           </div>
           <div>
-            <b>3,429</b>
-            <span>真实体验</span>
+            <b>{week?.acceptedCount ?? 0}</b>
+            <span>有效反馈</span>
           </div>
         </div>
       </div>

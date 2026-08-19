@@ -1134,7 +1134,17 @@ a {
 }
 .task-main h3 {
   font-size: 13px;
-  margin: 6px 0 9px;
+  margin: 6px 0 6px;
+}
+.task-desc {
+  color: #aeb1a9;
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0 0 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .progress-row {
   display: flex;
@@ -2385,6 +2395,46 @@ footer {
   color: #4c5d24;
   font-weight: 800;
   border-bottom: 1px solid #8d9a5e;
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.spark-rules {
+  margin-top: 56px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px 24px;
+  background: #fffefa;
+}
+.spark-rules h3 {
+  margin: 8px 0 16px;
+  font-size: 20px;
+}
+.spark-rules table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.spark-rules th,
+.spark-rules td {
+  text-align: left;
+  padding: 8px 10px 8px 0;
+  border-bottom: 1px solid #ecebe3;
+  vertical-align: top;
+}
+.spark-rules th {
+  color: #7a7c74;
+  font-size: 10px;
+}
+.spark-rules p {
+  margin: 16px 0 0;
+  color: #6d6f68;
+  font-size: 12px;
+  line-height: 1.7;
 }
 
 .detail-wrap {
