@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@vibeember/shared";
-import type { ProjectPublic } from "@vibeember/shared";
+import type { ProjectPublic, TaskClaimItem } from "@vibeember/shared";
 import { fallbackProjects } from "@/data/fallback";
 import { useAppSession } from "@/lib/session";
 import { projectPalettes, type DisplayProject } from "@/lib/types";
 import { AccountModal } from "./modals/account-modal";
 import { AuthModal } from "./modals/auth-modal";
 import { SubmitModal } from "./modals/submit-modal";
+import { TaskClaimModal } from "./modals/task-claim-modal";
 import { Discover } from "./discover";
 import { Footer } from "./footer";
 import { HelpSection } from "./help-section";
@@ -24,14 +25,18 @@ function toDisplayProject(project: ProjectPublic, index: number): DisplayProject
     id: project.id,
     name: project.name,
     tagline: project.tagline,
-    category: project.category,
+    category: project.kindLabel,
+    topics: project.topics,
     maker: project.maker,
     avatar: project.maker.slice(0, 1).toUpperCase(),
     icon: project.name.slice(0, 1).toUpperCase(),
     color: palette[0],
     accent: palette[1],
-    votes: 0,
-    comments: 0,
+    votes: project.voteCount,
+    comments: project.commentCount,
+    voted: project.voted,
+    bookmarked: project.bookmarked,
+    makerId: project.makerId,
     badge: "社区首发",
     url: project.url,
     logoUrl: project.logoUrl,
@@ -43,13 +48,14 @@ function toDisplayProject(project: ProjectPublic, index: number): DisplayProject
 export function Home() {
   const { user } = useAppSession();
   const [category, setCategory] = useState("全部");
+  const [kind, setKind] = useState("全部");
   const [search, setSearch] = useState("");
   const [voted, setVoted] = useState<Array<number | string>>([1]);
-  const [joined, setJoined] = useState<number[]>([]);
   const [showSubmit, setShowSubmit] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  const [activeClaim, setActiveClaim] = useState<TaskClaimItem | null>(null);
   const [toast, setToast] = useState("");
   const [liveProjects, setLiveProjects] = useState<DisplayProject[]>([]);
 
@@ -72,9 +78,7 @@ export function Home() {
     void (async () => {
       try {
         const data = await api.listProjects();
-        if (!cancelled) {
-          setLiveProjects(data.projects.map(toDisplayProject));
-        }
+        if (!cancelled) setLiveProjects(data.projects.map(toDisplayProject));
       } catch {
         // API 暂不可用时保留精选首发集展示
       }
@@ -89,17 +93,43 @@ export function Home() {
   const visibleProjects = useMemo(() => {
     const q = search.trim().toLowerCase();
     return allProjects.filter((project) => {
-      const categoryMatch = category === "全部" || project.category === category;
+      const kindMatch = kind === "全部" || project.category === kind;
+      const categoryMatch =
+        category === "全部" || project.topics?.includes(category) || project.category === category;
       const searchMatch =
-        !q || `${project.name}${project.tagline}${project.category}`.toLowerCase().includes(q);
-      return categoryMatch && searchMatch;
+        !q ||
+        `${project.name}${project.tagline}${project.category}${project.topics?.join("") ?? ""}`
+          .toLowerCase()
+          .includes(q);
+      return kindMatch && categoryMatch && searchMatch;
     });
-  }, [allProjects, category, search]);
+  }, [allProjects, category, kind, search]);
 
-  const toggleVote = (id: number | string) => {
+  const resetFilters = () => {
+    setKind("全部");
+    setCategory("全部");
+    setSearch("");
+  };
+
+  const toggleVote = async (id: number | string) => {
+    const wasVoted = voted.includes(id);
     setVoted((items) =>
       items.includes(id) ? items.filter((item) => item !== id) : [...items, id],
     );
+    if (!user || typeof id !== "string") return;
+    try {
+      const res = await api.toggleVote(id);
+      setLiveProjects((items) =>
+        items.map((item) =>
+          item.id === id
+            ? { ...item, votes: item.votes + (res.voted ? 1 : -1), voted: res.voted }
+            : item,
+        ),
+      );
+    } catch {
+      setVoted((items) => (wasVoted ? [...items, id] : items.filter((item) => item !== id)));
+      notify("点赞失败，请稍后重试");
+    }
   };
 
   const openSubmit = () => {
@@ -119,6 +149,10 @@ export function Home() {
     setShowAccount(true);
   };
 
+  const openClaim = (claim: TaskClaimItem) => {
+    setActiveClaim(claim);
+  };
+
   return (
     <main>
       <SiteHeader
@@ -134,17 +168,29 @@ export function Home() {
       <Ticker />
       <Discover
         projects={visibleProjects}
+        total={allProjects.length}
         category={category}
         setCategory={setCategory}
+        kind={kind}
+        setKind={setKind}
+        resetFilters={resetFilters}
         voted={voted}
-        onToggleVote={toggleVote}
+        onToggleVote={(id) => void toggleVote(id)}
         onNotify={notify}
         onOpenSearch={() => {
           setShowSearch(true);
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
       />
-      <HelpSection joined={joined} setJoined={setJoined} onNotify={notify} />
+      <HelpSection
+        loggedIn={Boolean(user)}
+        onNotify={notify}
+        onNeedAuth={() => {
+          setShowAuth(true);
+          notify("登录后才能领取任务");
+        }}
+        onOpenClaim={openClaim}
+      />
       <HowItWorks />
       <Footer />
 
@@ -167,6 +213,19 @@ export function Home() {
           onClose={() => setShowAccount(false)}
           onNotify={notify}
           onReviewed={() => void loadPublicProjects()}
+          onOpenClaim={(claim) => {
+            setShowAccount(false);
+            openClaim(claim);
+          }}
+        />
+      )}
+
+      {activeClaim && (
+        <TaskClaimModal
+          claim={activeClaim}
+          onClose={() => setActiveClaim(null)}
+          onNotify={notify}
+          onChanged={() => void loadPublicProjects()}
         />
       )}
 

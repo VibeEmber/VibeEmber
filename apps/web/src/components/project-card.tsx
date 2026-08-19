@@ -1,6 +1,8 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
-import { ArrowRight, Bookmark, Heart, MessageCircle } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Bookmark, ExternalLink, Heart, MessageCircle } from "lucide-react";
 import type { DisplayProject } from "@/lib/types";
 
 interface ProjectCardProps {
@@ -11,6 +13,8 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, index, voted, onToggleVote }: ProjectCardProps) {
+  const detailHref = typeof project.id === "string" ? `/p/${project.id}` : undefined;
+
   return (
     <article
       className="project-card"
@@ -50,35 +54,57 @@ export function ProjectCard({ project, index, voted, onToggleVote }: ProjectCard
         <div className="project-title-line">
           <div>
             <h3>
-              {project.url ? (
-                <a href={project.url} target="_blank" rel="noreferrer">
+              {detailHref ? (
+                <Link href={detailHref}>
                   {project.name} <ArrowRight size={13} />
-                </a>
+                </Link>
               ) : (
                 project.name
               )}
+              {project.url && (
+                <a
+                  className="card-outlink"
+                  href={project.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="直接打开产品"
+                >
+                  <ExternalLink size={12} />
+                </a>
+              )}
             </h3>
-            <span>{project.category}</span>
+            <span>
+              {project.category}
+              {project.topics?.length ? ` · ${project.topics.join(" / ")}` : ""}
+            </span>
           </div>
           <button
             className={voted ? "vote voted" : "vote"}
             onClick={() => onToggleVote(project.id)}
             aria-label={`为${project.name}点赞`}
           >
-            <Heart size={17} fill={voted ? "currentColor" : "none"} />{" "}
-            {project.votes + (voted && project.id !== 1 ? 1 : 0)}
+            <Heart size={17} fill={voted ? "currentColor" : "none"} /> {project.votes}
           </button>
         </div>
         <p>{project.tagline}</p>
         <div className="project-meta">
-          {project.makerAvatarUrl ? (
-            <span className="maker-avatar">
-              <img src={project.makerAvatarUrl} alt={project.maker} loading="lazy" />
-            </span>
+          {project.makerId ? (
+            <Link className="maker-link" href={`/u/${project.makerId}`}>
+              {project.makerAvatarUrl ? (
+                <span className="maker-avatar">
+                  <img src={project.makerAvatarUrl} alt={project.maker} loading="lazy" />
+                </span>
+              ) : (
+                <span className="maker-avatar">{project.avatar}</span>
+              )}
+              {project.maker}
+            </Link>
           ) : (
-            <span className="maker-avatar">{project.avatar}</span>
+            <>
+              <span className="maker-avatar">{project.avatar}</span>
+              <span>{project.maker}</span>
+            </>
           )}
-          <span>{project.maker}</span>
           <span className="meta-spacer" />
           <MessageCircle size={15} />
           <span>{project.comments}</span>

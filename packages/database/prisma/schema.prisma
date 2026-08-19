@@ -1,4 +1,4 @@
-// Better-Auth（user/account/session/verification）+ 业务表（project/review_audit）
+// Better-Auth + 业务表（项目 / 火苗 / 任务 / 社交）
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,37 +14,93 @@ enum ProjectStatus {
   rejected
 }
 
+enum ProjectKind {
+  web
+  mini_program
+  mobile_app
+  desktop
+  social
+}
+
+enum AssetKind {
+  screenshot
+  qr
+}
+
+enum TaskStatus {
+  open
+  full
+  closed
+  expired
+}
+
+enum ClaimStatus {
+  claimed
+  submitted
+  accepted
+  rejected
+  cancelled
+}
+
+enum ReportStatus {
+  pending
+  upheld
+  dismissed
+}
+
+enum SparkType {
+  signup_bonus
+  task_freeze
+  task_unfreeze
+  task_reward
+  task_refund
+  admin_adjust
+}
+
 model User {
-  id            String         @id
-  name          String
-  email         String         @unique
-  emailVerified Boolean        @default(false)
-  image         String?
-  role          String         @default("member") // member | admin
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  accounts      Account[]
-  sessions      Session[]
-  projects      Project[]      @relation("ProjectOwner")
-  reviewed      Project[]      @relation("ProjectReviewer")
-  audits        ReviewAudit[]
+  id                String         @id
+  name              String
+  email             String         @unique
+  emailVerified     Boolean        @default(false)
+  image             String?
+  role              String         @default("member")
+  bio               String         @default("")
+  creditScore       Int            @default(70)
+  creditFrozenUntil DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  accounts          Account[]
+  sessions          Session[]
+  projects          Project[]      @relation("ProjectOwner")
+  reviewed          Project[]      @relation("ProjectReviewer")
+  audits            ReviewAudit[]
+  sparkAccount      SparkAccount?
+  ledgers           SparkLedger[]
+  tasks             Task[]
+  claims            TaskClaim[]
+  reports           TaskReport[]   @relation("Reporter")
+  resolvedReports   TaskReport[]   @relation("ReportResolver")
+  comments          Comment[]
+  bookmarks         Bookmark[]
+  votes             ProjectVote[]
+  notifications     Notification[]
 }
 
 model Account {
-  id                String    @id
-  accountId         String
-  providerId        String
-  userId            String
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken       String?
-  refreshToken      String?
-  idToken           String?
-  accessTokenExpiresAt DateTime?
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
-  scope             String?
-  password          String?
-  createdAt         DateTime
-  updatedAt         DateTime
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
 
   @@unique([providerId, accountId])
 }
@@ -73,38 +129,191 @@ model Verification {
 }
 
 model Project {
-  id              String        @id @default(uuid())
-  owner           User          @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  id              String         @id @default(uuid())
+  owner           User           @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId         String
   name            String
   tagline         String
-  url             String
-  category        String
-  helpNeeded      String        @default("")
-  status          ProjectStatus @default(pending)
-  rejectionReason String        @default("")
+  url             String         @default("")
+  kind            ProjectKind    @default(web)
+  topics          String[]
+  extras          Json           @default("{}")
+  helpNeeded      String         @default("")
+  status          ProjectStatus  @default(pending)
+  rejectionReason String         @default("")
   logoKey         String?
   qrKey           String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
   approvedAt      DateTime?
-  reviewer        User?         @relation("ProjectReviewer", fields: [reviewerId], references: [id])
+  reviewer        User?          @relation("ProjectReviewer", fields: [reviewerId], references: [id])
   reviewerId      String?
   audits          ReviewAudit[]
+  assets          ProjectAsset[]
+  tasks           Task[]
+  comments        Comment[]
+  bookmarks       Bookmark[]
+  votes           ProjectVote[]
 
   @@index([ownerId, createdAt(sort: Desc)])
   @@index([status, createdAt(sort: Desc)])
+  @@index([kind])
+}
+
+model ProjectAsset {
+  id        String    @id @default(uuid())
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  kind      AssetKind
+  key       String
+  sort      Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  @@index([projectId, kind])
 }
 
 model ReviewAudit {
-  id        Int      @id @default(autoincrement())
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId String
-  reviewer  User     @relation(fields: [reviewerId], references: [id])
+  id         Int      @id @default(autoincrement())
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId  String
+  reviewer   User     @relation(fields: [reviewerId], references: [id])
   reviewerId String
-  action    String // approved | rejected
-  reason    String   @default("")
-  createdAt DateTime @default(now())
+  action     String
+  reason     String   @default("")
+  createdAt  DateTime @default(now())
 
   @@index([projectId])
+}
+
+model SparkAccount {
+  userId          String   @id
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance         Int      @default(0)
+  frozen          Int      @default(0)
+  lifetimeEarned  Int      @default(0)
+  updatedAt       DateTime @updatedAt
+}
+
+model SparkLedger {
+  id           String    @id @default(uuid())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  amount       Int
+  balanceAfter Int
+  type         SparkType
+  refType      String    @default("")
+  refId        String    @default("")
+  memo         String    @default("")
+  createdAt    DateTime  @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model Task {
+  id            String     @id @default(uuid())
+  project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId     String
+  owner         User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId       String
+  title         String
+  description   String
+  reward        Int
+  quota         Int
+  claimedCount  Int        @default(0)
+  acceptedCount Int        @default(0)
+  frozenAmount  Int
+  status        TaskStatus @default(open)
+  deadline      DateTime
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  claims        TaskClaim[]
+
+  @@index([status, deadline])
+  @@index([projectId])
+  @@index([ownerId, createdAt(sort: Desc)])
+}
+
+model TaskClaim {
+  id            String       @id @default(uuid())
+  task          Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  status        ClaimStatus  @default(claimed)
+  feedback      String       @default("")
+  screenshotKey String?
+  reviewNote    String       @default("")
+  claimedAt     DateTime     @default(now())
+  submitBy      DateTime
+  submittedAt   DateTime?
+  reviewedAt    DateTime?
+  reports       TaskReport[]
+
+  @@unique([taskId, userId])
+  @@index([userId, status])
+  @@index([taskId, status])
+}
+
+model TaskReport {
+  id          String       @id @default(uuid())
+  claim       TaskClaim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  claimId     String
+  reporter    User         @relation("Reporter", fields: [reporterId], references: [id])
+  reporterId  String
+  reason      String
+  status      ReportStatus @default(pending)
+  resolver    User?        @relation("ReportResolver", fields: [resolverId], references: [id])
+  resolverId  String?
+  resolution  String       @default("")
+  createdAt   DateTime     @default(now())
+  resolvedAt  DateTime?
+
+  @@index([status, createdAt])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt(sort: Desc)])
+}
+
+model Bookmark {
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  createdAt DateTime @default(now())
+
+  @@id([userId, projectId])
+}
+
+model ProjectVote {
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  createdAt DateTime @default(now())
+
+  @@id([userId, projectId])
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  type      String
+  title     String
+  body      String    @default("")
+  refType   String    @default("")
+  refId     String    @default("")
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
 }

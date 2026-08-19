@@ -5,6 +5,7 @@ loadEnv();
 import pgBossDefault, { type Job } from "pg-boss";
 import QRCode from "qrcode";
 import sharp from "sharp";
+import { CREDIT } from "@vibeember/shared";
 import { prisma } from "@vibeember/database";
 import { createStorage } from "@vibeember/storage";
 
@@ -72,10 +73,76 @@ async function main(): Promise<void> {
     }
   });
 
-  console.log("VibeEmber worker 已启动（qr.generate / image.process）");
+  const expireDue = async () => {
+    const now = new Date();
+    const staleClaims = await prisma.taskClaim.findMany({
+      where: { status: "claimed", submitBy: { lt: now } },
+    });
+    for (const claim of staleClaims) {
+      await prisma.taskClaim.update({ where: { id: claim.id }, data: { status: "cancelled" } });
+      const task = await prisma.task.findUnique({ where: { id: claim.taskId } });
+      if (task) {
+        const claimedCount = Math.max(0, task.claimedCount - 1);
+        await prisma.task.update({
+          where: { id: task.id },
+          data: {
+            claimedCount,
+            status: task.status === "full" && claimedCount < task.quota ? "open" : task.status,
+          },
+        });
+      }
+      const user = await prisma.user.findUnique({ where: { id: claim.userId } });
+      if (user) {
+        const score = Math.max(0, user.creditScore + CREDIT.timeoutDelta);
+        await prisma.user.update({ where: { id: user.id }, data: { creditScore: score } });
+      }
+    }
+    const staleTasks = await prisma.task.findMany({
+      where: { status: { in: ["open", "full"] }, deadline: { lt: now } },
+    });
+    for (const task of staleTasks) {
+      await prisma.$transaction(async (tx) => {
+        await tx.task.update({
+          where: { id: task.id },
+          data: { status: "expired", frozenAmount: 0 },
+        });
+        if (task.frozenAmount > 0) {
+          const account = await tx.sparkAccount.upsert({
+            where: { userId: task.ownerId },
+            update: {},
+            create: { userId: task.ownerId, balance: 0, frozen: 0, lifetimeEarned: 0 },
+          });
+          const nextFrozen = Math.max(0, account.frozen - task.frozenAmount);
+          const updated = await tx.sparkAccount.update({
+            where: { userId: task.ownerId },
+            data: { frozen: nextFrozen },
+          });
+          await tx.sparkLedger.create({
+            data: {
+              userId: task.ownerId,
+              amount: 0,
+              balanceAfter: updated.balance,
+              type: "task_refund",
+              refType: "task",
+              refId: task.id,
+              memo: "任务过期，退回未使用冻结",
+            },
+          });
+        }
+      });
+    }
+    if (staleClaims.length || staleTasks.length) {
+      console.log(`[task.expire] claims=${staleClaims.length} tasks=${staleTasks.length}`);
+    }
+  };
+  await expireDue();
+  const timer = setInterval(() => void expireDue(), 10 * 60 * 1000);
+
+  console.log("VibeEmber worker 已启动（qr.generate / image.process / task.expire）");
 
   const shutdown = async (signal: string) => {
     console.log(`收到 ${signal}，正在优雅退出…`);
+    clearInterval(timer);
     await boss.stop({ graceful: true });
     await prisma.$disconnect();
     process.exit(0);

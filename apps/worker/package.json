@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@vibeember/database": "workspace:*",
+    "@vibeember/shared": "workspace:*",
     "@vibeember/storage": "workspace:*",
     "dotenv": "^17.0.0",
     "pg-boss": "^10.1.0",

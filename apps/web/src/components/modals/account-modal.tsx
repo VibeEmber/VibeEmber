@@ -13,7 +13,13 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api, uploadFile } from "@vibeember/shared";
-import type { ProjectPrivate, SessionUser } from "@vibeember/shared";
+import type {
+  ProjectPrivate,
+  SessionUser,
+  SparkSummary,
+  TaskClaimItem,
+  TaskReportItem,
+} from "@vibeember/shared";
 import { authClient } from "@/lib/auth-client";
 import { Modal } from "../modal";
 
@@ -22,11 +28,22 @@ interface AccountModalProps {
   onClose: () => void;
   onNotify: (message: string) => void;
   onReviewed: () => void;
+  onOpenClaim: (claim: TaskClaimItem) => void;
 }
 
-export function AccountModal({ user, onClose, onNotify, onReviewed }: AccountModalProps) {
+export function AccountModal({
+  user,
+  onClose,
+  onNotify,
+  onReviewed,
+  onOpenClaim,
+}: AccountModalProps) {
   const [myProjects, setMyProjects] = useState<ProjectPrivate[]>([]);
   const [reviewProjects, setReviewProjects] = useState<ProjectPrivate[]>([]);
+  const [sparks, setSparks] = useState<SparkSummary | null>(null);
+  const [claims, setClaims] = useState<TaskClaimItem[]>([]);
+  const [reviews, setReviews] = useState<TaskClaimItem[]>([]);
+  const [reports, setReports] = useState<TaskReportItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -34,11 +51,23 @@ export function AccountModal({ user, onClose, onNotify, onReviewed }: AccountMod
   useEffect(() => {
     const load = async () => {
       try {
-        const mine = await api.myProjects();
+        const [mine, sparkSummary, myClaims, pending] = await Promise.all([
+          api.myProjects(),
+          api.sparks(),
+          api.myClaims(),
+          api.pendingReviews(),
+        ]);
         setMyProjects(mine.projects);
+        setSparks(sparkSummary);
+        setClaims(myClaims);
+        setReviews(pending);
         if (user.role === "admin") {
-          const pending = await api.adminProjects("pending");
-          setReviewProjects(pending.projects);
+          const [queue, reportList] = await Promise.all([
+            api.adminProjects("pending"),
+            api.adminReports(),
+          ]);
+          setReviewProjects(queue.projects);
+          setReports(reportList.reports);
         }
       } catch (error) {
         onNotify(error instanceof Error ? error.message : "加载失败");
@@ -145,7 +174,7 @@ export function AccountModal({ user, onClose, onNotify, onReviewed }: AccountMod
               <article key={project.id}>
                 <div>
                   <span>
-                    {project.category} · {project.ownerEmail}
+                    {project.kindLabel} · {project.ownerEmail}
                   </span>
                   <h4>{project.name}</h4>
                   <p>{project.tagline}</p>
@@ -193,7 +222,7 @@ export function AccountModal({ user, onClose, onNotify, onReviewed }: AccountMod
             <article key={project.id}>
               <div>
                 <span>
-                  {project.category} · {new Date(project.createdAt).toLocaleDateString("zh-CN")}
+                  {project.kindLabel} · {new Date(project.createdAt).toLocaleDateString("zh-CN")}
                 </span>
                 <h4>{project.name}</h4>
                 <p>{project.tagline}</p>
@@ -211,6 +240,30 @@ export function AccountModal({ user, onClose, onNotify, onReviewed }: AccountMod
                   }}
                 />
               )}
+              {project.status === "approved" && (
+                <button
+                  onClick={() => {
+                    const title = window.prompt("任务标题") ?? "";
+                    const description = window.prompt("任务说明（至少 10 字）") ?? "";
+                    const deadline = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString();
+                    void api
+                      .createTask({
+                        projectId: project.id,
+                        title,
+                        description,
+                        reward: 10,
+                        quota: 5,
+                        deadline,
+                      })
+                      .then(() => onNotify("助燃任务已发布，赏金已冻结"))
+                      .catch((error: unknown) =>
+                        onNotify(error instanceof Error ? error.message : "发布失败"),
+                      );
+                  }}
+                >
+                  发起助燃
+                </button>
+              )}
               <span className={`status-pill ${project.status}`}>
                 {project.status === "approved"
                   ? "已上线"
@@ -225,6 +278,133 @@ export function AccountModal({ user, onClose, onNotify, onReviewed }: AccountMod
           )}
         </div>
       </section>
+
+      <section className="my-projects">
+        <div className="panel-title">
+          <div>
+            <span className="section-kicker">火苗 {sparks?.available ?? 0}</span>
+            <h3>我的助燃</h3>
+          </div>
+        </div>
+        <div className="submission-list mine">
+          {reviews.map((item) => (
+            <article key={item.id}>
+              <div>
+                <span>待验收 · {item.userName}</span>
+                <h4>{item.taskTitle}</h4>
+                <p>{item.feedback}</p>
+              </div>
+              <div className="review-actions">
+                <button
+                  disabled={busy}
+                  onClick={() => {
+                    const note = window.prompt("驳回原因") ?? "";
+                    if (!note) return;
+                    void api
+                      .reviewClaim(item.id, { action: "rejected", note })
+                      .then(() => {
+                        setReviews((rows) => rows.filter((row) => row.id !== item.id));
+                        onNotify("已驳回");
+                      })
+                      .catch((error: unknown) =>
+                        onNotify(error instanceof Error ? error.message : "操作失败"),
+                      );
+                  }}
+                >
+                  驳回
+                </button>
+                <button
+                  className="approve"
+                  disabled={busy}
+                  onClick={() =>
+                    void api
+                      .reviewClaim(item.id, { action: "accepted" })
+                      .then(() => {
+                        setReviews((rows) => rows.filter((row) => row.id !== item.id));
+                        onNotify("已通过并结算火苗");
+                      })
+                      .catch((error: unknown) =>
+                        onNotify(error instanceof Error ? error.message : "操作失败"),
+                      )
+                  }
+                >
+                  通过
+                </button>
+              </div>
+            </article>
+          ))}
+          {claims.map((item) => (
+            <article key={item.id}>
+              <div>
+                <span>
+                  {item.status} · {item.projectName}
+                </span>
+                <h4>{item.taskTitle}</h4>
+                <p>{item.feedback || "尚未提交反馈"}</p>
+              </div>
+              {(item.status === "claimed" ||
+                item.status === "submitted" ||
+                item.status === "rejected" ||
+                item.status === "accepted") && (
+                <button onClick={() => onOpenClaim(item)}>
+                  {item.status === "claimed"
+                    ? "提交反馈"
+                    : item.status === "rejected"
+                      ? "查看驳回 / 举报"
+                      : "查看进度"}
+                </button>
+              )}
+            </article>
+          ))}
+          {reviews.length === 0 && claims.length === 0 && (
+            <div className="panel-empty">还没有助燃记录。</div>
+          )}
+        </div>
+      </section>
+
+      {user.role === "admin" && reports.length > 0 && (
+        <section className="my-projects">
+          <div className="panel-title">
+            <div>
+              <span className="section-kicker">抽查</span>
+              <h3>待处理举报</h3>
+            </div>
+          </div>
+          <div className="submission-list mine">
+            {reports.map((item) => (
+              <article key={item.id}>
+                <div>
+                  <span>{item.reporterName}</span>
+                  <h4>{item.taskTitle}</h4>
+                  <p>{item.reason}</p>
+                </div>
+                <div className="review-actions">
+                  <button
+                    onClick={() =>
+                      void api.resolveReport(item.id, "dismissed", "维持原判").then(() => {
+                        setReports((rows) => rows.filter((row) => row.id !== item.id));
+                      })
+                    }
+                  >
+                    驳回举报
+                  </button>
+                  <button
+                    className="approve"
+                    onClick={() =>
+                      void api.resolveReport(item.id, "upheld", "改判补发").then(() => {
+                        setReports((rows) => rows.filter((row) => row.id !== item.id));
+                        onNotify("已改判并补发火苗");
+                      })
+                    }
+                  >
+                    改判
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
     </Modal>
   );
 }

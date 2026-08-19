@@ -14,9 +14,6 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@vibeember/shared": ["../../packages/shared/src/index.ts"],
-      "@vibeember/database": ["../../packages/database/src/index.ts"],
-      "@vibeember/storage": ["../../packages/storage/src/index.ts"],
       "better-auth/node": ["./node_modules/better-auth/dist/integrations/node.d.mts"],
       "better-auth/plugins": ["./node_modules/better-auth/dist/plugins/index.d.mts"],
       "better-auth/adapters/prisma": [

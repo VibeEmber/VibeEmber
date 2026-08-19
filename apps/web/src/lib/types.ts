@@ -1,10 +1,11 @@
-/** 卡片展示模型：API 公开项目 + 精选兜底数据的并集 */
 export interface DisplayProject {
   id: number | string;
   name: string;
   tagline: string;
   category: string;
+  topics?: string[];
   maker: string;
+  makerId?: string;
   avatar: string;
   icon: string;
   color: string;
@@ -15,7 +16,10 @@ export interface DisplayProject {
   url?: string;
   logoUrl?: string | null;
   qrUrl?: string | null;
+  extraQrUrl?: string | null;
   makerAvatarUrl?: string | null;
+  voted?: boolean;
+  bookmarked?: boolean;
 }
 
 export const projectPalettes: ReadonlyArray<readonly [string, string]> = [

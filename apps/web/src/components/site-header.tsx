@@ -2,7 +2,8 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { Bell, Plus, Search, UserCircle, X } from "lucide-react";
-import type { SessionUser } from "@vibeember/shared";
+import { useEffect, useState } from "react";
+import { api, type NotificationItem, type SessionUser } from "@vibeember/shared";
 import { EmberMark } from "./ember-mark";
 
 interface SiteHeaderProps {
@@ -24,6 +25,18 @@ export function SiteHeader({
   onOpenSubmit,
   onOpenAccount,
 }: SiteHeaderProps) {
+  const [unread, setUnread] = useState(0);
+  const [notes, setNotes] = useState<NotificationItem[]>([]);
+  const [openNotes, setOpenNotes] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    void api.notifications().then((data) => {
+      setUnread(data.unread);
+      setNotes(data.notifications);
+    });
+  }, [user]);
+
   return (
     <header className="site-header">
       <a className="brand" href="#top" aria-label="星火场首页">
@@ -37,9 +50,7 @@ export function SiteHeader({
         <a className="active" href="#discover">
           看星火
         </a>
-        <a href="#help">
-          去助燃 <span className="nav-dot">12</span>
-        </a>
+        <a href="#help">去助燃</a>
         <a href="#how">怎么玩</a>
       </nav>
       <div className="header-actions">
@@ -50,9 +61,16 @@ export function SiteHeader({
         >
           <Search size={20} />
         </button>
-        <button className="icon-button notification" aria-label="通知">
+        <button
+          className="icon-button notification"
+          aria-label="通知"
+          onClick={() => {
+            setOpenNotes((value) => !value);
+            if (user && unread) void api.readNotifications().then(() => setUnread(0));
+          }}
+        >
           <Bell size={20} />
-          <i />
+          {unread > 0 && <i />}
         </button>
         <button className="submit-button" onClick={onOpenSubmit}>
           <Plus size={17} /> 发布项目
@@ -81,7 +99,18 @@ export function SiteHeader({
           <input
             autoFocus
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              const value = event.target.value;
+              setSearch(value);
+              if (value.length === 1) {
+                document.getElementById("discover")?.scrollIntoView({ behavior: "smooth" });
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && search.trim()) {
+                document.getElementById("discover")?.scrollIntoView({ behavior: "smooth" });
+              }
+            }}
             placeholder="搜索产品、功能或赛道…"
           />
           <button
@@ -93,6 +122,19 @@ export function SiteHeader({
           >
             <X size={17} />
           </button>
+        </div>
+      )}
+      {openNotes && (
+        <div
+          className="header-search"
+          style={{ top: 81, maxHeight: 280, overflow: "auto", display: "grid" }}
+        >
+          {notes.length === 0 && <small>暂无通知</small>}
+          {notes.map((item) => (
+            <p key={item.id} style={{ margin: 0 }}>
+              <b>{item.title}</b> {item.body}
+            </p>
+          ))}
         </div>
       )}
     </header>

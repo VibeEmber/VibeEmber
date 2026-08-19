@@ -1,6 +1,5 @@
 import { config } from "dotenv";
 
-// 兼容三种运行位置：包目录、仓库根、CI 容器（无 .env 时使用真实环境变量）
 for (const candidate of [".env", "prisma/.env", "../../.env"]) {
   config({ path: candidate, quiet: true });
 }
@@ -8,11 +7,9 @@ for (const candidate of [".env", "prisma/.env", "../../.env"]) {
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
-
 const BOOTSTRAP_ADMIN_EMAIL = (
   process.env.BOOTSTRAP_ADMIN_EMAIL ?? "admin@vibeember.dev"
 ).toLowerCase();
-
 const day = 24 * 60 * 60 * 1000;
 const now = Date.now();
 
@@ -61,7 +58,6 @@ const seedUsers = [
   },
 ] as const;
 
-// 迁自前端原精选首发集（app/page.tsx），作为新库的冷启动内容
 const seedProjects = [
   {
     id: "10000000-0000-4000-8000-000000000001",
@@ -69,7 +65,8 @@ const seedProjects = [
     name: "流光简历",
     tagline: "把普通经历，变成会讲故事的作品集",
     url: "https://demo.vibeember.dev/liuguang-resume",
-    category: "AI 工具",
+    kind: "web" as const,
+    topics: ["AI", "效率"],
     helpNeeded: "征集 20 位求职者体验 AI 改写功能并反馈效果",
     approvedAt: new Date(now - 1 * day),
   },
@@ -79,7 +76,8 @@ const seedProjects = [
     name: "饭搭子",
     tagline: "不再纠结吃什么，也找到一起吃的人",
     url: "https://demo.vibeember.dev/fandouzi",
-    category: "微信小程序",
+    kind: "mini_program" as const,
+    topics: ["生活方式"],
     helpNeeded: "征集 30 位上海用户体验组队吃饭功能",
     approvedAt: new Date(now - 2 * day),
   },
@@ -89,7 +87,8 @@ const seedProjects = [
     name: "TabTab",
     tagline: "用 AI 把你的 100 个浏览器标签变成知识库",
     url: "https://demo.vibeember.dev/tabtab",
-    category: "浏览器插件",
+    kind: "desktop" as const,
+    topics: ["效率", "AI"],
     helpNeeded: "安装插件，完成 10 分钟真实体验并留下建议",
     approvedAt: new Date(now - 3 * day),
   },
@@ -99,7 +98,8 @@ const seedProjects = [
     name: "方言星球",
     tagline: "每天 3 分钟，学会一句家乡话",
     url: "https://demo.vibeember.dev/fangyan-planet",
-    category: "教育",
+    kind: "web" as const,
+    topics: ["教育"],
     helpNeeded: "寻找 8 位广东话母语者校对入门内容",
     approvedAt: new Date(now - 4 * day),
   },
@@ -109,7 +109,8 @@ const seedProjects = [
     name: "Billow",
     tagline: "自由职业者的极简记账与报价助手",
     url: "https://demo.vibeember.dev/billow",
-    category: "Web 应用",
+    kind: "web" as const,
+    topics: ["效率"],
     helpNeeded: "征集 15 位自由职业者试用报价模板功能",
     approvedAt: new Date(now - 5 * day),
   },
@@ -119,11 +120,12 @@ const seedProjects = [
     name: "周末去哪",
     tagline: "给城市里不想做攻略的人一个答案",
     url: "https://demo.vibeember.dev/weekend-go",
-    category: "生活方式",
+    kind: "mobile_app" as const,
+    topics: ["生活方式"],
     helpNeeded: "征集 20 位同城用户测试一键生成周末计划",
     approvedAt: new Date(now - 6 * day),
   },
-] as const;
+];
 
 async function main(): Promise<void> {
   for (const user of seedUsers) {
@@ -132,13 +134,18 @@ async function main(): Promise<void> {
       update: { name: user.name, role: user.role },
       create: { ...user, emailVerified: true },
     });
+    await prisma.sparkAccount.upsert({
+      where: { userId: user.id },
+      update: {},
+      create: { userId: user.id, balance: 40, frozen: 0, lifetimeEarned: 40 },
+    });
   }
 
   for (const project of seedProjects) {
     const createdAt = new Date(project.approvedAt.getTime() - 12 * 60 * 60 * 1000);
     await prisma.project.upsert({
       where: { id: project.id },
-      update: {},
+      update: { kind: project.kind, topics: [...project.topics] },
       create: {
         ...project,
         status: "approved",
@@ -150,11 +157,23 @@ async function main(): Promise<void> {
     });
   }
 
-  const [userCount, projectCount] = await Promise.all([
-    prisma.user.count(),
-    prisma.project.count(),
-  ]);
-  console.log(`Seed 完成：${userCount} 个用户，${projectCount} 个项目。`);
+  await prisma.task.upsert({
+    where: { id: "20000000-0000-4000-8000-000000000001" },
+    update: {},
+    create: {
+      id: "20000000-0000-4000-8000-000000000001",
+      projectId: "10000000-0000-4000-8000-000000000002",
+      ownerId: "00000000-0000-4000-8000-000000000012",
+      title: "体验组队吃饭并留下卡点",
+      description: "打开饭搭子，完成一次组队流程，写下你卡住或惊喜的地方。",
+      reward: 10,
+      quota: 8,
+      frozenAmount: 80,
+      deadline: new Date(now + 5 * day),
+    },
+  });
+
+  console.log("Seed 完成：用户、项目、样例任务已就绪。");
 }
 
 main()

@@ -6,6 +6,7 @@ import type { SessionUser } from "@vibeember/shared";
 import { readConfig } from "../config";
 import { MailService } from "../mail/mail.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { SparkService } from "../spark/spark.service";
 
 /**
  * Better-Auth：GitHub OAuth + 邮箱验证码（OTP）登录，无密码。
@@ -19,6 +20,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
+    private readonly sparks: SparkService,
   ) {
     const config = readConfig();
 
@@ -41,6 +43,9 @@ export class AuthService {
                 role: user.email.toLowerCase() === config.bootstrapAdminEmail ? "admin" : "member",
               },
             }),
+            after: async (user) => {
+              await this.sparks.grantSignupBonus(user.id);
+            },
           },
         },
       },

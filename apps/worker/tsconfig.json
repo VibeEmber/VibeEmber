@@ -8,6 +8,7 @@
     "baseUrl": ".",
     "paths": {
       "@vibeember/database": ["../../packages/database/src/index.ts"],
+      "@vibeember/shared": ["../../packages/shared/src/index.ts"],
       "@vibeember/storage": ["../../packages/storage/src/index.ts"]
     }
   },

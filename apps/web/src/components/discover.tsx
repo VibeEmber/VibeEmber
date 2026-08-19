@@ -1,14 +1,19 @@
 "use client";
 
 import { ArrowRight, ChevronRight, CircleHelp, Flame, Search, Star } from "lucide-react";
+import { PROJECT_KINDS } from "@vibeember/shared";
 import { categoryFilters, leaderboard } from "@/data/fallback";
 import { ProjectCard } from "./project-card";
 import type { DisplayProject } from "@/lib/types";
 
 interface DiscoverProps {
   projects: DisplayProject[];
+  total: number;
   category: string;
   setCategory: (value: string) => void;
+  kind: string;
+  setKind: (value: string) => void;
+  resetFilters: () => void;
   voted: Array<number | string>;
   onToggleVote: (id: number | string) => void;
   onNotify: (message: string) => void;
@@ -17,8 +22,12 @@ interface DiscoverProps {
 
 export function Discover({
   projects,
+  total,
   category,
   setCategory,
+  kind,
+  setKind,
+  resetFilters,
   voted,
   onToggleVote,
   onNotify,
@@ -33,11 +42,34 @@ export function Discover({
           </span>
           <h2>这些星火，刚刚燃起来</h2>
         </div>
-        <a href="#all">
-          查看全部 <ArrowRight size={17} />
-        </a>
+        <button
+          type="button"
+          className="text-button"
+          onClick={() => {
+            resetFilters();
+            document.getElementById("discover")?.scrollIntoView({ behavior: "smooth" });
+          }}
+        >
+          查看全部（{total}） <ArrowRight size={17} />
+        </button>
       </div>
-      <div className="category-row" role="tablist" aria-label="产品分类">
+
+      <div className="category-row" role="tablist" aria-label="产品形态">
+        <button className={kind === "全部" ? "selected" : ""} onClick={() => setKind("全部")}>
+          全部形态
+        </button>
+        {PROJECT_KINDS.map((item) => (
+          <button
+            key={item.id}
+            className={kind === item.label ? "selected" : ""}
+            onClick={() => setKind(item.label)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="category-row" role="tablist" aria-label="话题">
         {categoryFilters.map((item) => (
           <button
             key={item}
@@ -48,6 +80,12 @@ export function Discover({
           </button>
         ))}
       </div>
+      <p className="count-note">
+        {kind === "全部" && category === "全部"
+          ? "展示全部产品"
+          : `${kind === "全部" ? "" : kind}${category === "全部" ? "" : " · " + category}`}
+        ，共 {projects.length} 个结果
+      </p>
 
       <div className="project-layout">
         <div className="project-grid">
@@ -101,7 +139,7 @@ export function Discover({
             <div>
               <span>开做之前，先搜一搜</span>
               <h3>别再重复造轮子</h3>
-              <p>搜索 680+ 个真实产品和用户反馈，找到还没被解决的问题。</p>
+              <p>搜索真实产品和用户反馈，找到还没被解决的问题。</p>
               <button onClick={onOpenSearch}>
                 查看赛道地图 <ArrowRight size={16} />
               </button>

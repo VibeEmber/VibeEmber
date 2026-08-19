@@ -134,15 +134,7 @@ export const helpTasks: HelpTask[] = [
   },
 ];
 
-export const categoryFilters = [
-  "全部",
-  "AI 工具",
-  "微信小程序",
-  "Web 应用",
-  "移动 App",
-  "教育",
-  "生活方式",
-];
+export const categoryFilters = ["全部", "教育", "游戏", "效率", "娱乐", "AI", "生活方式", "工具"];
 
 export const leaderboard = [
   ["鱼丸", "产品经理", "428", "🐟"],

@@ -1,15 +1,93 @@
 "use client";
 
 import { ArrowRight, Check, Clock3, Flame, Target, Users } from "lucide-react";
-import { helpTasks } from "@/data/fallback";
+import { useEffect, useState } from "react";
+import { api, type SparkSummary, type TaskClaimItem, type TaskPublic } from "@vibeember/shared";
 
 interface HelpSectionProps {
-  joined: number[];
-  setJoined: React.Dispatch<React.SetStateAction<number[]>>;
+  loggedIn: boolean;
   onNotify: (message: string) => void;
+  onNeedAuth: () => void;
+  onOpenClaim: (claim: TaskClaimItem) => void;
 }
 
-export function HelpSection({ joined, setJoined, onNotify }: HelpSectionProps) {
+export function HelpSection({ loggedIn, onNotify, onNeedAuth, onOpenClaim }: HelpSectionProps) {
+  const [tasks, setTasks] = useState<TaskPublic[]>([]);
+  const [sparks, setSparks] = useState<SparkSummary | null>(null);
+  const [myClaims, setMyClaims] = useState<TaskClaimItem[]>([]);
+
+  const reload = async () => {
+    try {
+      setTasks(await api.listTasks());
+      if (loggedIn) {
+        setSparks(await api.sparks());
+        setMyClaims(await api.myClaims());
+      } else {
+        setSparks(null);
+        setMyClaims([]);
+      }
+    } catch {
+      /* keep previous */
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const tasks = await api.listTasks();
+        if (cancelled) return;
+        setTasks(tasks);
+        if (loggedIn) {
+          setSparks(await api.sparks());
+          setMyClaims(await api.myClaims());
+        } else {
+          setSparks(null);
+          setMyClaims([]);
+        }
+      } catch {
+        /* keep previous */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loggedIn]);
+
+  const claim = async (task: TaskPublic) => {
+    if (!loggedIn) {
+      onNeedAuth();
+      return;
+    }
+    try {
+      const res = await api.claimTask(task.id);
+      onNotify("任务已领取，24 小时内提交反馈");
+      await reload();
+      onOpenClaim({
+        id: res.id,
+        taskId: task.id,
+        taskTitle: task.title,
+        projectName: task.projectName,
+        userId: "",
+        userName: "我",
+        userAvatarUrl: null,
+        status: "claimed",
+        feedback: "",
+        screenshotUrl: null,
+        reviewNote: "",
+        claimedAt: new Date().toISOString(),
+        submitBy: res.submitBy,
+        submittedAt: null,
+      });
+    } catch (error) {
+      onNotify(error instanceof Error ? error.message : "领取失败");
+    }
+  };
+
+  const activeClaims = myClaims.filter(
+    (item) => item.status === "claimed" || item.status === "submitted",
+  );
+
   return (
     <section className="help-section" id="help">
       <div className="section-wrap">
@@ -25,69 +103,78 @@ export function HelpSection({ joined, setJoined, onNotify }: HelpSectionProps) {
             <span>
               <Flame size={18} fill="currentColor" /> 我的火苗
             </span>
-            <strong>120</strong>
-            <button onClick={() => onNotify("快去完成一个体验任务吧")}>+赚火苗</button>
+            <strong>{sparks ? sparks.available : "--"}</strong>
+            <button onClick={() => onNotify(loggedIn ? "去完成一个体验任务吧" : "登录后查看火苗")}>
+              {sparks ? `冻结 ${sparks.frozen}` : "+赚火苗"}
+            </button>
           </div>
         </div>
+
+        {loggedIn && activeClaims.length > 0 && (
+          <div className="my-claims-strip">
+            <b>我的进行中任务</b>
+            {activeClaims.map((item) => (
+              <button key={item.id} onClick={() => onOpenClaim(item)}>
+                {item.status === "claimed" ? "待提交反馈" : "等待验收"} · {item.taskTitle}
+                <ArrowRight size={13} />
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="task-list">
-          {helpTasks.map((task, index) => (
-            <article className="task-card" key={task.name}>
-              <div className="task-icon" style={{ background: task.color }}>
-                {task.icon}
+          {tasks.map((task) => (
+            <article className="task-card" key={task.id}>
+              <div className="task-icon" style={{ background: "#fff0bb" }}>
+                燃
               </div>
               <div className="task-main">
                 <div className="task-name">
-                  <b>{task.name}</b>
-                  <span>真实体验</span>
+                  <b>{task.projectName}</b>
+                  <span>{task.reward} 火苗</span>
                 </div>
                 <h3>{task.title}</h3>
                 <div className="progress-row">
                   <div className="progress-track">
-                    <i style={{ width: `${task.progress}%` }} />
+                    <i
+                      style={{ width: `${(task.claimedCount / Math.max(task.quota, 1)) * 100}%` }}
+                    />
                   </div>
                   <span>
-                    {task.current}/{task.total} 人
+                    {task.claimedCount}/{task.quota} 人
                   </span>
                 </div>
               </div>
               <div className="task-time">
                 <Clock3 size={15} />
-                {task.time}
+                {new Date(task.deadline).toLocaleDateString("zh-CN")} 截止
               </div>
               <div className="reward">
                 <Flame size={15} fill="currentColor" /> +{task.reward}
               </div>
-              <button
-                className={joined.includes(index) ? "joined" : ""}
-                onClick={() => {
-                  setJoined((all) => (all.includes(index) ? all : [...all, index]));
-                  onNotify(
-                    joined.includes(index)
-                      ? "你已经领取过这个任务"
-                      : "任务已领取，去产品页完成体验吧",
-                  );
-                }}
-              >
-                {joined.includes(index) ? (
+              <button disabled={task.status !== "open"} onClick={() => void claim(task)}>
+                {task.status === "open" ? (
                   <>
-                    <Check size={16} /> 已领取
+                    去助燃 <ArrowRight size={16} />
                   </>
                 ) : (
                   <>
-                    去帮忙 <ArrowRight size={16} />
+                    <Check size={16} /> 已满员
                   </>
                 )}
               </button>
             </article>
           ))}
+          {tasks.length === 0 && (
+            <div className="panel-empty" style={{ color: "#c9cbc5" }}>
+              暂时没有开放中的助燃任务。
+            </div>
+          )}
         </div>
         <div className="help-footer">
           <span>
-            <Target size={17} /> 所有任务都要求真实体验与有效反馈，拒绝机器刷量。
+            <Target size={17} /> 提交至少 40 字真实反馈（可附截图），由发起人验收后才记火苗。
           </span>
-          <a href="#all-tasks">
-            浏览全部 36 个任务 <ArrowRight size={16} />
-          </a>
         </div>
       </div>
     </section>
