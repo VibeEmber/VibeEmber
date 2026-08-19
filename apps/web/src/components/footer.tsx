@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { EmberMark } from "./ember-mark";
 
 export function Footer() {
@@ -15,9 +16,9 @@ export function Footer() {
         </div>
       </div>
       <div className="footer-links">
-        <a href="#discover">星火</a>
-        <a href="#help">助燃</a>
-        <a href="#rules">社区公约</a>
+        <Link href="/#discover">星火</Link>
+        <Link href="/#help">助燃</Link>
+        <Link href="/#rules">社区公约</Link>
         <a href="mailto:hello@vibeember.dev">联系我们</a>
       </div>
       <span>© 2026 星火场 · VibeEmber</span>

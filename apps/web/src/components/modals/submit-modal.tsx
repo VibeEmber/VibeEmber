@@ -101,7 +101,7 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
         <ol>
           <li>提交后进入审核，通过即在首页公开展示</li>
           <li>
-            在「个人中心 · 我的投稿」对<b>已上线项目</b>发起助燃任务
+            在「个人中心 · 我的产品」对<b>已上线项目</b>发起助燃任务
           </li>
           <li>发起时按「赏金 × 名额」冻结火苗，验收通过后支付给帮忙者</li>
         </ol>

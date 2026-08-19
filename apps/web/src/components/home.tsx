@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@vibeember/shared";
 import type { CommunityWeek, ProjectPublic, TaskClaimItem } from "@vibeember/shared";
 import { useAppSession } from "@/lib/session";
 import { projectPalettes, type DisplayProject } from "@/lib/types";
-import { AccountModal } from "./modals/account-modal";
 import { AuthModal } from "./modals/auth-modal";
 import { SubmitModal } from "./modals/submit-modal";
 import { TaskClaimModal } from "./modals/task-claim-modal";
@@ -46,6 +46,7 @@ function toDisplayProject(project: ProjectPublic, index: number): DisplayProject
 
 export function Home() {
   const { user } = useAppSession();
+  const router = useRouter();
   const [category, setCategory] = useState("全部");
   const [kind, setKind] = useState("全部");
   const [search, setSearch] = useState("");
@@ -53,7 +54,6 @@ export function Home() {
   const [showSubmit, setShowSubmit] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
-  const [showAccount, setShowAccount] = useState(false);
   const [activeClaim, setActiveClaim] = useState<TaskClaimItem | null>(null);
   const [toast, setToast] = useState("");
   const [liveProjects, setLiveProjects] = useState<DisplayProject[]>([]);
@@ -148,7 +148,7 @@ export function Home() {
       setShowAuth(true);
       return;
     }
-    setShowAccount(true);
+    router.push("/me");
   };
 
   const openClaim = (claim: TaskClaimItem) => {
@@ -200,7 +200,7 @@ export function Home() {
             notify("登录后查看火苗账本");
             return;
           }
-          setShowAccount(true);
+          router.push("/me?tab=ledger");
         }}
       />
       <HowItWorks />
@@ -218,19 +218,6 @@ export function Home() {
       )}
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onNotify={notify} />}
-
-      {showAccount && user && (
-        <AccountModal
-          user={user}
-          onClose={() => setShowAccount(false)}
-          onNotify={notify}
-          onReviewed={() => void loadPublicProjects()}
-          onOpenClaim={(claim) => {
-            setShowAccount(false);
-            openClaim(claim);
-          }}
-        />
-      )}
 
       {activeClaim && (
         <TaskClaimModal

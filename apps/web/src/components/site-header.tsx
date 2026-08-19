@@ -3,6 +3,7 @@
 
 import { Bell, Plus, Search, UserCircle, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { api, type NotificationItem, type SessionUser } from "@vibeember/shared";
 import { EmberMark } from "./ember-mark";
 
@@ -39,19 +40,19 @@ export function SiteHeader({
 
   return (
     <header className="site-header">
-      <a className="brand" href="#top" aria-label="星火场首页">
+      <Link className="brand" href="/#top" aria-label="星火场首页">
         <span className="brand-mark">
           <EmberMark size={20} />
         </span>
         <span>星火场</span>
         <small>EMBER</small>
-      </a>
+      </Link>
       <nav className="desktop-nav" aria-label="主导航">
-        <a className="active" href="#discover">
+        <Link className="active" href="/#discover">
           看星火
-        </a>
-        <a href="#help">去助燃</a>
-        <a href="#how">怎么玩</a>
+        </Link>
+        <Link href="/#help">去助燃</Link>
+        <Link href="/#how">怎么玩</Link>
       </nav>
       <div className="header-actions">
         <button

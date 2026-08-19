@@ -8,8 +8,7 @@ import { useParams } from "next/navigation";
 import { api } from "@vibeember/shared";
 import type { CommentItem, ProjectPublic } from "@vibeember/shared";
 import { useAppSession } from "@/lib/session";
-import { SiteHeader } from "@/components/site-header";
-import { Footer } from "@/components/footer";
+import { AppChrome } from "@/components/app-chrome";
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
@@ -108,172 +107,156 @@ export default function ProjectDetailPage() {
 
   if (!project) {
     return (
-      <main>
-        <SiteHeader
-          user={user}
-          search=""
-          setSearch={() => undefined}
-          showSearch={false}
-          setShowSearch={() => undefined}
-          onOpenSubmit={() => undefined}
-          onOpenAccount={() => undefined}
-        />
-        <div className="section-wrap" style={{ padding: "80px 24px" }}>
-          {error || "加载中…"}
-        </div>
-        <Footer />
-      </main>
+      <AppChrome>
+        <main>
+          <div className="section-wrap" style={{ padding: "80px 24px" }}>
+            {error || "加载中…"}
+          </div>
+        </main>
+      </AppChrome>
     );
   }
 
   return (
-    <main>
-      <SiteHeader
-        user={user}
-        search=""
-        setSearch={() => undefined}
-        showSearch={false}
-        setShowSearch={() => undefined}
-        onOpenSubmit={() => undefined}
-        onOpenAccount={() => undefined}
-      />
-      <div className="section-wrap detail-wrap">
-        <div className="detail-hero">
-          {project.logoUrl ? (
-            <span className="detail-logo">
-              <img src={project.logoUrl} alt={`${project.name} Logo`} />
-            </span>
-          ) : (
-            <span className="detail-logo">{project.name.slice(0, 1)}</span>
-          )}
-          <div className="detail-hero-copy">
-            <div className="detail-topics">
-              <span className="status-pill approved">{project.kindLabel}</span>
-              {project.topics.map((topic) => (
-                <span key={topic} className="status-pill pending">
-                  {topic}
-                </span>
-              ))}
+    <AppChrome>
+      <main>
+        <div className="section-wrap detail-wrap">
+          <div className="detail-hero">
+            {project.logoUrl ? (
+              <span className="detail-logo">
+                <img src={project.logoUrl} alt={`${project.name} Logo`} />
+              </span>
+            ) : (
+              <span className="detail-logo">{project.name.slice(0, 1)}</span>
+            )}
+            <div className="detail-hero-copy">
+              <div className="detail-topics">
+                <span className="status-pill approved">{project.kindLabel}</span>
+                {project.topics.map((topic) => (
+                  <span key={topic} className="status-pill pending">
+                    {topic}
+                  </span>
+                ))}
+              </div>
+              <h1>{project.name}</h1>
+              <p>{project.tagline}</p>
+              <a className="detail-maker" href={`/u/${project.makerId}`}>
+                {project.makerAvatarUrl ? (
+                  <img src={project.makerAvatarUrl} alt={project.maker} />
+                ) : (
+                  <span>{project.maker.slice(0, 1)}</span>
+                )}
+                {project.maker} · {new Date(project.createdAt).toLocaleDateString("zh-CN")}
+              </a>
             </div>
-            <h1>{project.name}</h1>
-            <p>{project.tagline}</p>
-            <a className="detail-maker" href={`/u/${project.makerId}`}>
-              {project.makerAvatarUrl ? (
-                <img src={project.makerAvatarUrl} alt={project.maker} />
-              ) : (
-                <span>{project.maker.slice(0, 1)}</span>
-              )}
-              {project.maker} · {new Date(project.createdAt).toLocaleDateString("zh-CN")}
-            </a>
           </div>
-        </div>
 
-        <div className="detail-actions">
-          {project.url && (
-            <a className="primary-button" href={project.url} target="_blank" rel="noreferrer">
-              打开产品 <ArrowRight size={16} />
-            </a>
-          )}
-          <button
-            className={project.voted ? "vote voted" : "vote"}
-            onClick={() => void toggleVote()}
-          >
-            <Heart size={16} fill={project.voted ? "currentColor" : "none"} /> {project.voteCount}
-          </button>
-          <button
-            className={project.bookmarked ? "vote voted" : "vote"}
-            onClick={() => void toggleBookmark()}
-          >
-            <Bookmark size={16} fill={project.bookmarked ? "currentColor" : "none"} />{" "}
-            {project.bookmarkCount}
-          </button>
-          <span className="vote">
-            <MessageCircle size={16} /> {project.commentCount}
-          </span>
-        </div>
+          <div className="detail-actions">
+            {project.url && (
+              <a className="primary-button" href={project.url} target="_blank" rel="noreferrer">
+                打开产品 <ArrowRight size={16} />
+              </a>
+            )}
+            <button
+              className={project.voted ? "vote voted" : "vote"}
+              onClick={() => void toggleVote()}
+            >
+              <Heart size={16} fill={project.voted ? "currentColor" : "none"} /> {project.voteCount}
+            </button>
+            <button
+              className={project.bookmarked ? "vote voted" : "vote"}
+              onClick={() => void toggleBookmark()}
+            >
+              <Bookmark size={16} fill={project.bookmarked ? "currentColor" : "none"} />{" "}
+              {project.bookmarkCount}
+            </button>
+            <span className="vote">
+              <MessageCircle size={16} /> {project.commentCount}
+            </span>
+          </div>
 
-        <section className="detail-section">
-          <h3>现在最需要的帮助</h3>
-          <p>{project.helpNeeded}</p>
-          <Link className="text-button" href="/#help">
-            发起 / 参与助燃 <Flame size={14} />
-          </Link>
-        </section>
-
-        {(project.qrUrl || project.extraQrUrl || project.screenshotUrls.length > 0) && (
           <section className="detail-section">
-            <h3>二维码与截图</h3>
-            <div className="detail-assets">
-              {(project.extraQrUrl || project.qrUrl) && (
-                <span className="detail-qr">
+            <h3>现在最需要的帮助</h3>
+            <p>{project.helpNeeded}</p>
+            <Link className="text-button" href="/#help">
+              发起 / 参与助燃 <Flame size={14} />
+            </Link>
+          </section>
+
+          {(project.qrUrl || project.extraQrUrl || project.screenshotUrls.length > 0) && (
+            <section className="detail-section">
+              <h3>二维码与截图</h3>
+              <div className="detail-assets">
+                {(project.extraQrUrl || project.qrUrl) && (
+                  <span className="detail-qr">
+                    <img
+                      src={project.extraQrUrl || project.qrUrl || ""}
+                      alt={`${project.name} 二维码`}
+                      onError={(event) => {
+                        event.currentTarget.parentElement?.style.setProperty("display", "none");
+                      }}
+                    />
+                    <small>扫码 {project.kindLabel === "小程序" ? "进小程序" : "关注"}</small>
+                  </span>
+                )}
+                {project.screenshotUrls.map((url) => (
                   <img
-                    src={project.extraQrUrl || project.qrUrl || ""}
-                    alt={`${project.name} 二维码`}
-                    onError={(event) => {
-                      event.currentTarget.parentElement?.style.setProperty("display", "none");
-                    }}
+                    key={url}
+                    className="detail-shot"
+                    src={url}
+                    alt={`${project.name} 截图`}
+                    loading="lazy"
                   />
-                  <small>扫码 {project.kindLabel === "小程序" ? "进小程序" : "关注"}</small>
-                </span>
-              )}
-              {project.screenshotUrls.map((url) => (
-                <img
-                  key={url}
-                  className="detail-shot"
-                  src={url}
-                  alt={`${project.name} 截图`}
-                  loading="lazy"
-                />
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section className="detail-section">
+            <h3>评论（{comments.length}）</h3>
+            <div className="detail-comment-form">
+              <textarea
+                value={commentBody}
+                onChange={(event) => setCommentBody(event.target.value)}
+                placeholder={user ? "写下你的真实看法（2-500 字）" : "登录后评论"}
+                maxLength={500}
+              />
+              <button className="primary-button" onClick={() => void postComment()} disabled={busy}>
+                {busy ? "发送中" : "发表评论"}
+              </button>
+            </div>
+            <div className="submission-list mine">
+              {comments.map((comment) => (
+                <article key={comment.id}>
+                  <div>
+                    <a className="detail-maker" href={`/u/${comment.userId}`}>
+                      {comment.userAvatarUrl ? (
+                        <img src={comment.userAvatarUrl} alt={comment.userName} />
+                      ) : (
+                        <span>{comment.userName.slice(0, 1)}</span>
+                      )}
+                      <b>{comment.userName}</b>
+                    </a>
+                    <p>{comment.body}</p>
+                    <small>{new Date(comment.createdAt).toLocaleString("zh-CN")}</small>
+                  </div>
+                </article>
               ))}
+              {comments.length === 0 && <div className="panel-empty">还没有评论，坐第一排。</div>}
             </div>
           </section>
-        )}
 
-        <section className="detail-section">
-          <h3>评论（{comments.length}）</h3>
-          <div className="detail-comment-form">
-            <textarea
-              value={commentBody}
-              onChange={(event) => setCommentBody(event.target.value)}
-              placeholder={user ? "写下你的真实看法（2-500 字）" : "登录后评论"}
-              maxLength={500}
-            />
-            <button className="primary-button" onClick={() => void postComment()} disabled={busy}>
-              {busy ? "发送中" : "发表评论"}
-            </button>
-          </div>
-          <div className="submission-list mine">
-            {comments.map((comment) => (
-              <article key={comment.id}>
-                <div>
-                  <a className="detail-maker" href={`/u/${comment.userId}`}>
-                    {comment.userAvatarUrl ? (
-                      <img src={comment.userAvatarUrl} alt={comment.userName} />
-                    ) : (
-                      <span>{comment.userName.slice(0, 1)}</span>
-                    )}
-                    <b>{comment.userName}</b>
-                  </a>
-                  <p>{comment.body}</p>
-                  <small>{new Date(comment.createdAt).toLocaleString("zh-CN")}</small>
-                </div>
-              </article>
-            ))}
-            {comments.length === 0 && <div className="panel-empty">还没有评论，坐第一排。</div>}
-          </div>
-        </section>
-
-        {error && (
-          <div
-            className="toast"
-            style={{ position: "static", transform: "none", marginBottom: 20 }}
-          >
-            <Check size={17} />
-            {error}
-          </div>
-        )}
-      </div>
-      <Footer />
-    </main>
+          {error && (
+            <div
+              className="toast"
+              style={{ position: "static", transform: "none", marginBottom: 20 }}
+            >
+              <Check size={17} />
+              {error}
+            </div>
+          )}
+        </div>
+      </main>
+    </AppChrome>
   );
 }
