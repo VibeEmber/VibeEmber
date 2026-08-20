@@ -165,12 +165,16 @@ export function AuthModal({ onClose, onNotify }: AuthModalProps) {
             </>
           )}
         </button>
-        <small className="form-hint">
-          开发环境的验证码邮件可在 Mailpit（http://localhost:8025）查看。
-        </small>
+        <small className="form-hint">验证码发到你的邮箱，10 分钟内有效。</small>
       </form>
 
-      <small className="auth-note">继续即表示你同意社区公约：真实体验，拒绝刷量。</small>
+      <small className="auth-note">
+        继续即表示你同意
+        <a href="/covenant" target="_blank" rel="noreferrer">
+          社区公约
+        </a>
+        ：真实体验，拒绝刷量。
+      </small>
     </Modal>
   );
 }

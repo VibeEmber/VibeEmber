@@ -76,7 +76,7 @@ export function HelpSection({
     }
     try {
       const res = await api.claimTask(task.id);
-      onNotify("任务已领取，24 小时内提交反馈");
+      onNotify("助燃已领取，24 小时内提交反馈");
       await reload();
       onOpenClaim({
         id: res.id,

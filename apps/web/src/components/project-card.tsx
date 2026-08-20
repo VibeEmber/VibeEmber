@@ -10,9 +10,16 @@ interface ProjectCardProps {
   index: number;
   voted: boolean;
   onToggleVote: (id: number | string) => void;
+  onToggleBookmark?: (id: number | string) => void;
 }
 
-export function ProjectCard({ project, index, voted, onToggleVote }: ProjectCardProps) {
+export function ProjectCard({
+  project,
+  index,
+  voted,
+  onToggleVote,
+  onToggleBookmark,
+}: ProjectCardProps) {
   const detailHref = typeof project.id === "string" ? `/p/${project.id}` : undefined;
 
   return (
@@ -48,7 +55,7 @@ export function ProjectCard({ project, index, voted, onToggleVote }: ProjectCard
             />
           </span>
         )}
-        <span className="visual-caption">MADE WITH VIBE</span>
+        <span className="visual-caption">星火出品</span>
       </div>
       <div className="project-info">
         <div className="project-title-line">
@@ -108,7 +115,18 @@ export function ProjectCard({ project, index, voted, onToggleVote }: ProjectCard
           <span className="meta-spacer" />
           <MessageCircle size={15} />
           <span>{project.comments}</span>
-          <Bookmark size={15} />
+          {onToggleBookmark ? (
+            <button
+              type="button"
+              className={project.bookmarked ? "vote voted" : "vote"}
+              aria-label={project.bookmarked ? "取消收藏" : "收藏"}
+              onClick={() => onToggleBookmark(project.id)}
+            >
+              <Bookmark size={15} fill={project.bookmarked ? "currentColor" : "none"} />
+            </button>
+          ) : (
+            <Bookmark size={15} />
+          )}
         </div>
       </div>
     </article>

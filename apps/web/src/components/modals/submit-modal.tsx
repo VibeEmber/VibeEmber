@@ -12,22 +12,43 @@ import {
   api,
   uploadFile,
   type ProjectKind,
+  type ProjectPrivate,
+  type Topic,
 } from "@vibeember/shared";
 import { Modal } from "../modal";
 
 interface SubmitModalProps {
+  project?: ProjectPrivate;
   onClose: () => void;
   onNotify: (message: string) => void;
   onSubmitted: (message: string) => void;
 }
 
-export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps) {
+export function SubmitModal({ project, onClose, onNotify, onSubmitted }: SubmitModalProps) {
+  const editing = Boolean(project);
   const [busy, setBusy] = useState(false);
-  const [kind, setKind] = useState<ProjectKind>("web");
-  const [topics, setTopics] = useState<Array<(typeof TOPICS)[number]>>(["效率"]);
-  const [logo, setLogo] = useState<{ key: string; publicUrl: string } | null>(null);
-  const [qr, setQr] = useState<{ key: string; publicUrl: string } | null>(null);
-  const [screenshots, setScreenshots] = useState<Array<{ key: string; publicUrl: string }>>([]);
+  const [kind, setKind] = useState<ProjectKind>(project?.kind ?? "web");
+  const [topics, setTopics] = useState<Topic[]>(
+    project?.topics.filter((item): item is Topic =>
+      (TOPICS as readonly string[]).includes(item),
+    ) ?? ["效率"],
+  );
+  const [logo, setLogo] = useState<{ key: string; publicUrl: string } | null>(
+    project?.logoKey && project.logoUrl
+      ? { key: project.logoKey, publicUrl: project.logoUrl }
+      : null,
+  );
+  const [qr, setQr] = useState<{ key: string; publicUrl: string } | null>(
+    project?.extraQrKey && project.extraQrUrl
+      ? { key: project.extraQrKey, publicUrl: project.extraQrUrl }
+      : null,
+  );
+  const [screenshots, setScreenshots] = useState<Array<{ key: string; publicUrl: string }>>(
+    (project?.screenshotKeys ?? []).map((key, index) => ({
+      key,
+      publicUrl: project?.screenshotUrls[index] ?? "",
+    })),
+  );
   const logoRef = useRef<HTMLInputElement>(null);
   const qrRef = useRef<HTMLInputElement>(null);
   const shotRef = useRef<HTMLInputElement>(null);
@@ -60,7 +81,7 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
     const values = new FormData(event.currentTarget);
     setBusy(true);
     try {
-      await api.createProject({
+      const payload = {
         name: String(values.get("name") ?? ""),
         tagline: String(values.get("tagline") ?? ""),
         kind,
@@ -80,8 +101,10 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
         logoKey: logo?.key,
         screenshotKeys: screenshots.map((item) => item.key),
         extraQrKey: qr?.key,
-      });
-      onSubmitted("提交成功，项目已进入审核队列");
+      };
+      if (project) await api.updateProject(project.id, payload);
+      else await api.createProject(payload);
+      onSubmitted(editing ? "已重新提交审核" : "提交成功，产品已进入审核队列");
     } catch (error) {
       onNotify(error instanceof Error ? error.message : "提交失败");
     } finally {
@@ -95,13 +118,13 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
         <Rocket size={24} />
       </span>
       <span className="section-kicker">添柴</span>
-      <h2 id="submit-title">让你的产品被看见</h2>
+      <h2 id="submit-title">{editing ? "修改后再投" : "让你的产品被看见"}</h2>
       <div className="help-guide">
         <b>发布之后怎么获得帮助？</b>
         <ol>
           <li>提交后进入审核，通过即在首页公开展示</li>
           <li>
-            在「个人中心 · 我的产品」对<b>已上线项目</b>发起助燃任务
+            在「个人中心 · 我的产品」对<b>已上线产品</b>发起助燃
           </li>
           <li>发起时按「赏金 × 名额」冻结火苗，验收通过后支付给帮忙者</li>
         </ol>
@@ -117,7 +140,14 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
       <form onSubmit={submitProject}>
         <label>
           产品名称
-          <input name="name" required minLength={2} maxLength={40} placeholder="例如：饭搭子" />
+          <input
+            name="name"
+            required
+            minLength={2}
+            maxLength={40}
+            placeholder="例如：饭搭子"
+            defaultValue={project?.name}
+          />
         </label>
         <label>
           一句话介绍
@@ -127,6 +157,7 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
             minLength={6}
             maxLength={100}
             placeholder="你帮用户解决了什么问题？"
+            defaultValue={project?.tagline}
           />
         </label>
         <label>
@@ -163,6 +194,9 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
               required
               maxLength={500}
               placeholder="https://"
+              defaultValue={
+                kind === "web" ? project?.url : String(project?.extras.downloadUrl ?? "")
+              }
             />
           </label>
         )}
@@ -170,7 +204,11 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
           <>
             <label>
               小程序平台
-              <select name="miniPlatform" required defaultValue="微信">
+              <select
+                name="miniPlatform"
+                required
+                defaultValue={String(project?.extras.miniPlatform ?? "微信")}
+              >
                 {MINI_PROGRAM_PLATFORMS.map((item) => (
                   <option key={item}>{item}</option>
                 ))}
@@ -182,11 +220,21 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
           <div className="form-row">
             <label>
               iOS 链接
-              <input name="iosUrl" type="url" placeholder="https://" />
+              <input
+                name="iosUrl"
+                type="url"
+                placeholder="https://"
+                defaultValue={String(project?.extras.iosUrl ?? "")}
+              />
             </label>
             <label>
               Android 链接
-              <input name="androidUrl" type="url" placeholder="https://" />
+              <input
+                name="androidUrl"
+                type="url"
+                placeholder="https://"
+                defaultValue={String(project?.extras.androidUrl ?? "")}
+              />
             </label>
           </div>
         )}
@@ -194,7 +242,11 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
           <>
             <label>
               平台
-              <select name="socialPlatform" required defaultValue="公众号">
+              <select
+                name="socialPlatform"
+                required
+                defaultValue={String(project?.extras.socialPlatform ?? "公众号")}
+              >
                 {SOCIAL_PLATFORMS.map((item) => (
                   <option key={item}>{item}</option>
                 ))}
@@ -202,7 +254,11 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
             </label>
             <label>
               账号 / 主页
-              <input name="accountId" placeholder="账号 ID 或主页链接" />
+              <input
+                name="accountId"
+                placeholder="账号 ID 或主页链接"
+                defaultValue={String(project?.extras.accountId ?? "")}
+              />
             </label>
           </>
         )}
@@ -286,6 +342,7 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
             minLength={20}
             maxLength={300}
             placeholder="例如：希望 20 位用户走完组队流程，反馈卡在哪一步…"
+            defaultValue={project?.helpNeeded}
           />
         </label>
         <button className="primary-button" type="submit" disabled={busy || screenshots.length < 1}>
@@ -295,7 +352,7 @@ export function SubmitModal({ onClose, onNotify, onSubmitted }: SubmitModalProps
             </>
           ) : (
             <>
-              提交审核 <ArrowRight size={17} />
+              {editing ? "重新提交审核" : "提交审核"} <ArrowRight size={17} />
             </>
           )}
         </button>

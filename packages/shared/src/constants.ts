@@ -166,7 +166,7 @@ export const SPARK_RULES = [
 
 export const SPARK_TYPE_LABELS: Record<string, string> = {
   signup_bonus: "注册赠送",
-  task_freeze: "发起任务冻结",
+  task_freeze: "发起助燃冻结",
   task_unfreeze: "验收支付",
   task_reward: "完成助燃",
   task_refund: "任务退回",
@@ -180,6 +180,13 @@ export const CLAIM_STATUS_LABELS: Record<string, string> = {
   rejected: "未通过",
   cancelled: "已取消",
 };
+
+export const SITE = {
+  name: "星火场",
+  github: "https://github.com/VibeEmber/VibeEmber",
+  contactEmail: "hello@vibember.dev",
+  communityQr: "/community-qr.svg",
+} as const;
 
 export const CREDIT = {
   default: 70,

@@ -962,24 +962,24 @@ a {
   cursor: pointer;
 }
 .idea-card {
-  background: #e8f2ff;
+  background: #f3f6df;
   display: flex;
   gap: 13px;
-  border-color: #bed0e5;
+  border-color: #ccd98f;
 }
 .idea-icon {
   min-width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: #bcd8ff;
+  background: var(--lime);
   display: grid;
   place-items: center;
-  color: #2859a0;
+  color: var(--ink);
 }
 .idea-card > div span {
   font-size: 12px;
   font-weight: 900;
-  color: #50719d;
+  color: #4c5d24;
   letter-spacing: 0.04em;
 }
 .idea-card h3 {
@@ -988,7 +988,7 @@ a {
 .idea-card p {
   font-size: 12px;
   line-height: 1.6;
-  color: #5d6c80;
+  color: #5d6b3a;
   margin: 0;
 }
 .idea-card button {
@@ -1000,7 +1000,7 @@ a {
   align-items: center;
   font-size: 12px;
   font-weight: 900;
-  color: #315f9e;
+  color: #4c5d24;
   margin-top: 12px;
   cursor: pointer;
 }
@@ -1328,9 +1328,20 @@ footer {
 .footer-links {
   margin-left: auto;
   display: flex;
-  gap: 25px;
+  flex-wrap: wrap;
+  gap: 18px 25px;
   color: #4f514a;
   font-weight: 700;
+  align-items: center;
+}
+.footer-link-button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .modal-backdrop {
@@ -1481,6 +1492,11 @@ footer {
   font-size: 12px;
   line-height: 1.6;
   margin-top: 14px;
+}
+.auth-note a {
+  color: var(--ink);
+  font-weight: 800;
+  border-bottom: 1px solid #8d8f87;
 }
 .spin {
   animation: spin 0.9s linear infinite;
@@ -2038,7 +2054,8 @@ footer {
     padding: 22px;
   }
   .footer-links {
-    display: none;
+    margin-left: 0;
+    width: 100%;
   }
 }
 @media (max-width: 600px) {
@@ -2460,6 +2477,43 @@ footer {
   font-size: 12px;
   line-height: 1.7;
 }
+.join-strip {
+  margin-top: 36px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px 24px;
+  background: #fffefa;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  text-align: left;
+}
+.join-strip h3 {
+  margin: 8px 0 8px;
+  font-size: 20px;
+}
+.join-strip p {
+  margin: 0 0 16px;
+  color: #6d6f68;
+  font-size: 12px;
+  line-height: 1.7;
+  max-width: 520px;
+}
+.join-strip img {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+.join-strip .community-actions {
+  justify-items: start;
+}
+@media (max-width: 700px) {
+  .join-strip {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
 
 .detail-wrap {
   padding-top: 40px;
@@ -2792,6 +2846,107 @@ footer {
 }
 .me-signin p {
   color: #6d6f68;
+}
+.notes-panel {
+  position: absolute;
+  right: clamp(22px, 5vw, 78px);
+  top: 81px;
+  width: min(360px, calc(100vw - 32px));
+  max-height: 320px;
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  background: var(--white);
+  border: 1px solid var(--ink);
+  border-radius: 13px;
+  box-shadow: 6px 7px 0 rgba(25, 26, 22, 0.15);
+}
+.notes-panel a,
+.notes-panel small {
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.notes-panel a:hover {
+  text-decoration: underline;
+}
+.community-modal {
+  width: min(420px, 100%);
+  text-align: center;
+}
+.community-modal img {
+  display: block;
+  margin: 18px auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.community-actions {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+.covenant-page,
+.profile-page {
+  padding-top: 48px;
+  padding-bottom: 100px;
+}
+.covenant-page h1,
+.profile-page h1 {
+  font-size: clamp(32px, 4vw, 48px);
+  letter-spacing: -0.04em;
+  margin: 10px 0 16px;
+}
+.covenant-lead {
+  max-width: 640px;
+  line-height: 1.8;
+  color: #55584f;
+}
+.covenant-page section {
+  margin-top: 32px;
+  max-width: 720px;
+}
+.covenant-page h2 {
+  font-size: 20px;
+  margin: 0 0 10px;
+}
+.covenant-page ul {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.9;
+  color: #55584f;
+}
+.profile-head {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.profile-meta {
+  margin-top: 18px;
+  color: #777970;
+}
+.profile-page .submission-list {
+  margin-top: 24px;
+}
+.me-card label {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.me-card input,
+.me-card textarea {
+  border: 1px solid #d4d3cc;
+  background: #f8f7f2;
+  border-radius: 9px;
+  padding: 11px 12px;
+  outline: none;
+  font-size: 14px;
+}
+.me-card textarea {
+  min-height: 72px;
+  resize: vertical;
 }
 @media (max-width: 860px) {
   .me-shell {

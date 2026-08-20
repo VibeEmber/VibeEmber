@@ -5,6 +5,7 @@ import { CurrentUser } from "../auth/current-user.decorator";
 import { SessionGuard } from "../auth/session.guard";
 import { ZodValidationPipe } from "../common/zod-validation.pipe";
 import { PrismaService } from "../prisma/prisma.service";
+import { projectInclude, serializeProject } from "../projects/project-serializer";
 import { QUEUE_IMAGE_PROCESS, QueueService } from "../queue/queue.service";
 import { SparkService } from "../spark/spark.service";
 import { StorageService } from "../storage/storage.service";
@@ -41,6 +42,26 @@ export class MeController {
     return this.tasks.pendingReviews(user.id);
   }
 
+  @Get("tasks")
+  ownedTasks(@CurrentUser() user: SessionUser) {
+    return this.tasks.myTasks(user.id);
+  }
+
+  @Get("bookmarks")
+  async bookmarks(@CurrentUser() user: SessionUser) {
+    const rows = await this.prisma.bookmark.findMany({
+      where: { userId: user.id },
+      include: { project: { include: projectInclude } },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+    return {
+      projects: rows
+        .filter((row) => row.project.status === "approved")
+        .map((row) => serializeProject(row.project, this.storage, false, { bookmarked: true })),
+    };
+  }
+
   @Patch()
   async update(
     @CurrentUser() user: SessionUser,
@@ -64,6 +85,7 @@ export class MeController {
         name: updated.name,
         image: updated.image,
         role: updated.role === "admin" ? "admin" : "member",
+        bio: updated.bio,
       },
     };
   }

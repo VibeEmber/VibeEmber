@@ -36,7 +36,6 @@ function toDisplayProject(project: ProjectPublic, index: number): DisplayProject
     voted: project.voted,
     bookmarked: project.bookmarked,
     makerId: project.makerId,
-    badge: "社区首发",
     url: project.url,
     logoUrl: project.logoUrl,
     qrUrl: project.qrUrl,
@@ -50,7 +49,7 @@ export function Home() {
   const [category, setCategory] = useState("全部");
   const [kind, setKind] = useState("全部");
   const [search, setSearch] = useState("");
-  const [voted, setVoted] = useState<Array<number | string>>([1]);
+  const [voted, setVoted] = useState<Array<number | string>>([]);
   const [showSubmit, setShowSubmit] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
@@ -68,8 +67,9 @@ export function Home() {
     try {
       const data = await api.listProjects();
       setLiveProjects(data.projects.map(toDisplayProject));
+      setVoted(data.projects.filter((item) => item.voted).map((item) => item.id));
     } catch {
-      // API 暂不可用时保留精选首发集展示
+      /* keep previous */
     }
   }, []);
 
@@ -80,6 +80,7 @@ export function Home() {
         const [data, weekData] = await Promise.all([api.listProjects(), api.communityWeek()]);
         if (cancelled) return;
         setLiveProjects(data.projects.map(toDisplayProject));
+        setVoted(data.projects.filter((item) => item.voted).map((item) => item.id));
         setWeek(weekData);
       } catch {
         // API 暂不可用时保留已加载数据
@@ -134,10 +135,27 @@ export function Home() {
     }
   };
 
+  const toggleBookmark = async (id: number | string) => {
+    if (!user) {
+      setShowAuth(true);
+      notify("登录后才能收藏");
+      return;
+    }
+    if (typeof id !== "string") return;
+    try {
+      const res = await api.toggleBookmark(id);
+      setLiveProjects((items) =>
+        items.map((item) => (item.id === id ? { ...item, bookmarked: res.bookmarked } : item)),
+      );
+    } catch {
+      notify("收藏失败，请稍后重试");
+    }
+  };
+
   const openSubmit = () => {
     if (!user) {
       setShowAuth(true);
-      notify("登录后即可发布作品");
+      notify("登录后即可发布产品");
       return;
     }
     setShowSubmit(true);
@@ -178,6 +196,7 @@ export function Home() {
         resetFilters={resetFilters}
         voted={voted}
         onToggleVote={(id) => void toggleVote(id)}
+        onToggleBookmark={(id) => void toggleBookmark(id)}
         week={week}
         onNotify={notify}
         onOpenSearch={() => {
@@ -191,7 +210,7 @@ export function Home() {
         onNotify={notify}
         onNeedAuth={() => {
           setShowAuth(true);
-          notify("登录后才能领取任务");
+          notify("登录后才能领取助燃");
         }}
         onOpenClaim={openClaim}
         onOpenLedger={() => {

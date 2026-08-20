@@ -21,7 +21,7 @@ interface QrGenerateData {
 
 interface ImageProcessData {
   key: string;
-  kind: "avatar" | "logo";
+  kind: "avatar" | "logo" | "screenshot";
 }
 
 /** 生成产品链接二维码 PNG 并上传 S3 */
@@ -34,14 +34,22 @@ async function handleQrGenerate(data: QrGenerateData): Promise<void> {
   await storage.putObject(data.qrKey, png, "image/png");
 }
 
-/** 头像/Logo 原图压缩为正方形 WebP，覆盖写回同一个 key（URL 保持不变） */
+/** 头像/Logo 压成方形；产品截图只限制长边，避免证据被裁切 */
 async function handleImageProcess(data: ImageProcessData): Promise<void> {
-  const size = data.kind === "avatar" ? 256 : 512;
   const original = await storage.getObject(data.key);
-  const processed = await sharp(original)
-    .resize(size, size, { fit: "cover" })
-    .webp({ quality: 85 })
-    .toBuffer();
+  const pipeline = sharp(original);
+  const processed =
+    data.kind === "screenshot"
+      ? await pipeline
+          .resize(1600, 1600, { fit: "inside", withoutEnlargement: true })
+          .webp({ quality: 85 })
+          .toBuffer()
+      : await pipeline
+          .resize(data.kind === "avatar" ? 256 : 512, data.kind === "avatar" ? 256 : 512, {
+            fit: "cover",
+          })
+          .webp({ quality: 85 })
+          .toBuffer();
   await storage.putObject(data.key, processed, "image/webp");
 }
 

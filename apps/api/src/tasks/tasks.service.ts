@@ -60,8 +60,8 @@ export class TasksService {
       include: { assets: true },
     });
     if (!project || project.ownerId !== user.id)
-      throw new ForbiddenException("只能给自己的项目发起任务");
-    if (project.status !== "approved") throw new BadRequestException("项目通过审核后才能发起助燃");
+      throw new ForbiddenException("只能给自己的产品发起助燃");
+    if (project.status !== "approved") throw new BadRequestException("产品通过审核后才能发起助燃");
     if (!this.hasExperienceEntry(project)) {
       throw new BadRequestException("产品还没有可体验入口，先补齐链接或体验码");
     }
@@ -107,7 +107,7 @@ export class TasksService {
         type: "task_freeze",
         refType: "task",
         refId: created.id,
-        memo: `发起任务「${created.title}」冻结 ${freeze} 火苗`,
+        memo: `发起助燃「${created.title}」冻结 ${freeze} 火苗`,
       });
       return created;
     });
@@ -124,22 +124,22 @@ export class TasksService {
     if (todayCount >= 10) throw new BadRequestException("今天领取太多了，明天再来");
 
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
-    if (!task) throw new NotFoundException("任务不存在");
-    if (task.ownerId === user.id) throw new BadRequestException("不能领取自己的任务");
+    if (!task) throw new NotFoundException("助燃任务不存在");
+    if (task.ownerId === user.id) throw new BadRequestException("不能领取自己的助燃");
     if (task.status !== "open" || task.deadline < new Date()) {
-      throw new BadRequestException("任务已不可领取");
+      throw new BadRequestException("助燃已不可领取");
     }
     const existed = await this.prisma.taskClaim.findUnique({
       where: { taskId_userId: { taskId, userId: user.id } },
     });
     if (existed && existed.status !== "cancelled") {
-      throw new BadRequestException("你已经领取过这个任务");
+      throw new BadRequestException("你已经领取过这个助燃");
     }
 
     const submitBy = new Date(Date.now() + SPARK.claimHours * 60 * 60 * 1000);
     const claim = await this.prisma.$transaction(async (tx) => {
       const current = await tx.task.findUnique({ where: { id: taskId } });
-      if (!current || current.status !== "open") throw new BadRequestException("任务已不可领取");
+      if (!current || current.status !== "open") throw new BadRequestException("助燃已不可领取");
       if (current.claimedCount >= current.quota) throw new BadRequestException("名额已满");
       const saved = existed
         ? await tx.taskClaim.update({
@@ -393,7 +393,7 @@ export class TasksService {
         type: "task_reward",
         refType: "claim",
         refId: claim.id,
-        memo: `完成任务「${claim.task.title}」`,
+        memo: `完成助燃「${claim.task.title}」`,
       });
     });
     await this.credit.adjust(claim.userId, CREDIT.acceptDelta);
@@ -442,23 +442,58 @@ export class TasksService {
     return false;
   }
 
+  async closeByOwner(user: SessionUser, taskId: string) {
+    const task = await this.prisma.task.findUnique({ where: { id: taskId } });
+    if (!task) throw new NotFoundException("助燃任务不存在");
+    if (task.ownerId !== user.id) throw new ForbiddenException("只能结束自己发起的助燃");
+    if (task.status !== "open" && task.status !== "full") {
+      throw new BadRequestException("这场助燃已经结束");
+    }
+    const pending = await this.prisma.taskClaim.count({
+      where: { taskId, status: "submitted" },
+    });
+    if (pending > 0) throw new BadRequestException("还有待验收的反馈，先处理完再结束");
+    const openClaims = await this.prisma.taskClaim.findMany({
+      where: { taskId, status: "claimed" },
+    });
+    for (const claim of openClaims) {
+      await this.releaseClaim(claim.id, "cancelled");
+    }
+    await this.closeTask(taskId, "closed");
+    return { ok: true };
+  }
+
+  async myTasks(ownerId: string) {
+    const rows = await this.prisma.task.findMany({
+      where: { ownerId },
+      include: { project: true, owner: true },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
+    return rows.map((row) => this.serialize(row));
+  }
+
   async closeTask(taskId: string, status: "closed" | "expired") {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
-    if (!task || task.frozenAmount <= 0) {
-      if (task) await this.prisma.task.update({ where: { id: taskId }, data: { status } });
-      return;
-    }
+    if (!task) return;
+    if (task.status === "closed" || task.status === "expired") return;
+    const leftover = task.frozenAmount;
     await this.prisma.$transaction(async (tx) => {
-      await tx.task.update({ where: { id: taskId }, data: { status, frozenAmount: 0 } });
-      await this.sparks.applyIn(tx, {
-        userId: task.ownerId,
-        amount: 0,
-        freezeDelta: -task.frozenAmount,
-        type: "task_refund",
-        refType: "task",
-        refId: task.id,
-        memo: status === "expired" ? "任务过期，退回未使用冻结" : "关闭任务，退回未使用冻结",
+      await tx.task.update({
+        where: { id: taskId },
+        data: { status, frozenAmount: leftover > 0 ? 0 : task.frozenAmount },
       });
+      if (leftover > 0) {
+        await this.sparks.applyIn(tx, {
+          userId: task.ownerId,
+          amount: 0,
+          freezeDelta: -leftover,
+          type: "task_refund",
+          refType: "task",
+          refId: task.id,
+          memo: status === "expired" ? "助燃过期，退回未使用冻结" : "结束助燃，退回未使用冻结",
+        });
+      }
     });
   }
 
@@ -475,6 +510,7 @@ export class TasksService {
     quota: number;
     claimedCount: number;
     acceptedCount: number;
+    frozenAmount?: number;
     status: string;
     deadline: Date;
     createdAt: Date;
@@ -499,6 +535,7 @@ export class TasksService {
       quota: row.quota,
       claimedCount: row.claimedCount,
       acceptedCount: row.acceptedCount,
+      frozenAmount: row.frozenAmount,
       status: row.status,
       deadline: row.deadline.toISOString(),
       createdAt: row.createdAt.toISOString(),

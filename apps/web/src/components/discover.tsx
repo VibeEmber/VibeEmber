@@ -16,6 +16,7 @@ interface DiscoverProps {
   resetFilters: () => void;
   voted: Array<number | string>;
   onToggleVote: (id: number | string) => void;
+  onToggleBookmark: (id: number | string) => void;
   week: CommunityWeek | null;
   onNotify: (message: string) => void;
   onOpenSearch: () => void;
@@ -31,6 +32,7 @@ export function Discover({
   resetFilters,
   voted,
   onToggleVote,
+  onToggleBookmark,
   week,
   onNotify,
   onOpenSearch,
@@ -98,6 +100,7 @@ export function Discover({
               index={index}
               voted={voted.includes(project.id)}
               onToggleVote={onToggleVote}
+              onToggleBookmark={onToggleBookmark}
             />
           ))}
           {projects.length === 0 && (
@@ -146,7 +149,7 @@ export function Discover({
               <h3>别再重复造轮子</h3>
               <p>搜索真实产品和用户反馈，找到还没被解决的问题。</p>
               <button onClick={onOpenSearch}>
-                查看赛道地图 <ArrowRight size={16} />
+                搜索已有产品 <ArrowRight size={16} />
               </button>
             </div>
           </div>

@@ -178,7 +178,7 @@ const feedbackTypeIds = FEEDBACK_TYPES.map((item) => item.id) as [string, ...str
 const rejectReasonIds = REJECT_REASONS.map((item) => item.id) as [string, ...string[]];
 
 export const taskCreateSchema = z.object({
-  projectId: z.string().uuid("请选择有效项目"),
+  projectId: z.string().uuid("请选择有效产品"),
   title: z
     .string()
     .trim()

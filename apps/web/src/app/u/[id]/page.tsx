@@ -20,24 +20,20 @@ export default function ProfilePage() {
   if (error)
     return (
       <AppChrome>
-        <main className="section-wrap" style={{ padding: "80px 24px" }}>
-          {error}
-        </main>
+        <main className="section-wrap profile-page">{error}</main>
       </AppChrome>
     );
   if (!profile)
     return (
       <AppChrome>
-        <main className="section-wrap" style={{ padding: "80px 24px" }}>
-          加载中…
-        </main>
+        <main className="section-wrap profile-page">加载中…</main>
       </AppChrome>
     );
 
   return (
     <AppChrome>
-      <main className="section-wrap" style={{ padding: "80px 24px 120px" }}>
-        <div className="account-head" style={{ border: "1px solid #deddd5", borderRadius: 16 }}>
+      <main className="section-wrap profile-page">
+        <div className="account-head profile-head">
           <span className="account-avatar">
             {profile.image ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -52,11 +48,11 @@ export default function ProfilePage() {
             <p>{profile.bio || "这个人很安静，还没写简介。"}</p>
           </div>
         </div>
-        <p style={{ marginTop: 18, color: "#777970" }}>
-          {profile.projectCount} 个作品 · 助燃 {profile.helpCount} 次 · 累计火苗{" "}
+        <p className="profile-meta">
+          {profile.projectCount} 个产品 · 助燃 {profile.helpCount} 次 · 累计火苗{" "}
           {profile.lifetimeEarned}
         </p>
-        <div className="submission-list mine" style={{ marginTop: 24 }}>
+        <div className="submission-list mine">
           {profile.projects.map((project) => (
             <article key={project.id}>
               <div>
@@ -68,7 +64,7 @@ export default function ProfilePage() {
               </div>
             </article>
           ))}
-          {profile.projects.length === 0 && <div className="panel-empty">还没有公开作品。</div>}
+          {profile.projects.length === 0 && <div className="panel-empty">还没有公开产品。</div>}
         </div>
       </main>
     </AppChrome>

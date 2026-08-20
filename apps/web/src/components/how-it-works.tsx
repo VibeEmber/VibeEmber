@@ -1,8 +1,9 @@
 "use client";
 
 import { LayoutGrid } from "lucide-react";
-import { SPARK_RULES } from "@vibeember/shared";
+import { SITE, SPARK_RULES } from "@vibeember/shared";
 import { AddKindlingIcon, FanFlameIcon, PrairieFireIcon } from "./ember-stage-icons";
+import { GithubIcon } from "./github-icon";
 
 export function HowItWorks() {
   return (
@@ -69,6 +70,24 @@ export function HowItWorks() {
           点赞、收藏、短评、只打开链接、复读产品介绍、互刷小号，都不给火苗。求助必须有可体验版本、写清说明、选好反馈类型。
           提交要有使用截图；发起人 48 小时不验收会自动通过，管理员抽查已通过样本。
         </p>
+      </div>
+
+      <div className="join-strip">
+        <div>
+          <span className="section-kicker">进场</span>
+          <h3>加入星火场</h3>
+          <p>扫码进群，或到 GitHub 提 Issue。群码先占位，建好再换成正式码。</p>
+          <div className="community-actions">
+            <a className="primary-button" href={SITE.github} target="_blank" rel="noreferrer">
+              <GithubIcon size={16} /> GitHub
+            </a>
+            <a className="text-button" href={`mailto:${SITE.contactEmail}`}>
+              {SITE.contactEmail}
+            </a>
+          </div>
+        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={SITE.communityQr} alt="星火场社群二维码" width={132} height={132} />
       </div>
     </section>
   );

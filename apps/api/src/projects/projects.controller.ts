@@ -2,11 +2,13 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Headers,
   HttpCode,
   NotFoundException,
   Param,
+  Patch,
   Post,
   UseGuards,
 } from "@nestjs/common";
@@ -73,16 +75,7 @@ export class ProjectsController {
     @CurrentUser() user: SessionUser,
     @Body(new ZodValidationPipe(projectCreateSchema)) body: ProjectCreateData,
   ): Promise<{ id: string; status: "pending" }> {
-    if (body.logoKey && !body.logoKey.startsWith(`logos/${user.id}-`)) {
-      throw new BadRequestException("Logo 文件无效");
-    }
-    for (const key of body.screenshotKeys ?? []) {
-      if (!key.startsWith(`screenshots/${user.id}-`)) throw new BadRequestException("截图文件无效");
-    }
-    if (body.extraQrKey && !body.extraQrKey.startsWith(`qrs/${user.id}-`)) {
-      throw new BadRequestException("二维码文件无效");
-    }
-
+    this.assertAssetKeys(user.id, body);
     const created = await this.prisma.project.create({
       data: {
         ownerId: user.id,
@@ -94,33 +87,50 @@ export class ProjectsController {
         extras: body.extras ?? {},
         helpNeeded: body.helpNeeded,
         logoKey: body.logoKey ?? null,
-        assets: {
-          create: [
-            ...(body.screenshotKeys ?? []).map((key, index) => ({
-              kind: "screenshot" as const,
-              key,
-              sort: index,
-            })),
-            ...(body.extraQrKey ? [{ kind: "qr" as const, key: body.extraQrKey, sort: 0 }] : []),
-          ],
-        },
+        assets: { create: this.assetCreates(body) },
       },
     });
-
-    if (body.url) {
-      const qrKey = `qr/${created.id}.png`;
-      await this.prisma.project.update({ where: { id: created.id }, data: { qrKey } });
-      await this.queue.send(QUEUE_QR_GENERATE, { projectId: created.id, url: body.url, qrKey });
-    }
-    if (body.logoKey)
-      await this.queue.send(QUEUE_IMAGE_PROCESS, { key: body.logoKey, kind: "logo" });
-    for (const key of body.screenshotKeys ?? []) {
-      await this.queue.send(QUEUE_IMAGE_PROCESS, { key, kind: "logo" });
-    }
-    if (body.extraQrKey)
-      await this.queue.send(QUEUE_IMAGE_PROCESS, { key: body.extraQrKey, kind: "logo" });
-
+    await this.afterSave(created.id, body);
     return { id: created.id, status: "pending" };
+  }
+
+  @Patch(":id")
+  @UseGuards(SessionGuard)
+  async update(
+    @CurrentUser() user: SessionUser,
+    @Param("id") id: string,
+    @Body(new ZodValidationPipe(projectCreateSchema)) body: ProjectCreateData,
+  ): Promise<{ id: string; status: "pending" }> {
+    this.assertAssetKeys(user.id, body);
+    const project = await this.prisma.project.findUnique({ where: { id } });
+    if (!project) throw new NotFoundException("产品不存在");
+    if (project.ownerId !== user.id) throw new ForbiddenException("只能修改自己的产品");
+    if (project.status !== "rejected")
+      throw new BadRequestException("只有被驳回的产品可以修改后再投");
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.projectAsset.deleteMany({ where: { projectId: id } });
+      await tx.project.update({
+        where: { id },
+        data: {
+          name: body.name,
+          tagline: body.tagline,
+          url: body.url ?? "",
+          kind: body.kind as never,
+          topics: body.topics,
+          extras: body.extras ?? {},
+          helpNeeded: body.helpNeeded,
+          logoKey: body.logoKey ?? null,
+          status: "pending",
+          rejectionReason: "",
+          reviewerId: null,
+          approvedAt: null,
+          assets: { create: this.assetCreates(body) },
+        },
+      });
+    });
+    await this.afterSave(id, body);
+    return { id, status: "pending" };
   }
 
   @Get("mine")
@@ -143,7 +153,7 @@ export class ProjectsController {
       include: projectInclude,
     });
     if (!project || project.status !== "approved") {
-      throw new NotFoundException("项目不存在或未公开");
+      throw new NotFoundException("产品不存在或未公开");
     }
     const voted = viewer
       ? Boolean(
@@ -162,5 +172,44 @@ export class ProjectsController {
     return {
       project: serializeProject(project, this.storage, false, { voted, bookmarked }),
     };
+  }
+
+  private assertAssetKeys(userId: string, body: ProjectCreateData) {
+    if (body.logoKey && !body.logoKey.startsWith(`logos/${userId}-`)) {
+      throw new BadRequestException("Logo 文件无效");
+    }
+    for (const key of body.screenshotKeys ?? []) {
+      if (!key.startsWith(`screenshots/${userId}-`)) throw new BadRequestException("截图文件无效");
+    }
+    if (body.extraQrKey && !body.extraQrKey.startsWith(`qrs/${userId}-`)) {
+      throw new BadRequestException("二维码文件无效");
+    }
+  }
+
+  private assetCreates(body: ProjectCreateData) {
+    return [
+      ...(body.screenshotKeys ?? []).map((key, index) => ({
+        kind: "screenshot" as const,
+        key,
+        sort: index,
+      })),
+      ...(body.extraQrKey ? [{ kind: "qr" as const, key: body.extraQrKey, sort: 0 }] : []),
+    ];
+  }
+
+  private async afterSave(projectId: string, body: ProjectCreateData) {
+    if (body.url) {
+      const qrKey = `qr/${projectId}.png`;
+      await this.prisma.project.update({ where: { id: projectId }, data: { qrKey } });
+      await this.queue.send(QUEUE_QR_GENERATE, { projectId, url: body.url, qrKey });
+    }
+    if (body.logoKey)
+      await this.queue.send(QUEUE_IMAGE_PROCESS, { key: body.logoKey, kind: "logo" });
+    for (const key of body.screenshotKeys ?? []) {
+      await this.queue.send(QUEUE_IMAGE_PROCESS, { key, kind: "screenshot" });
+    }
+    if (body.extraQrKey) {
+      await this.queue.send(QUEUE_IMAGE_PROCESS, { key: body.extraQrKey, kind: "logo" });
+    }
   }
 }

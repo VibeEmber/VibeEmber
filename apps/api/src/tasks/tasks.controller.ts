@@ -41,6 +41,12 @@ export class TasksController {
   claim(@CurrentUser() user: SessionUser, @Param("id") id: string) {
     return this.tasks.claim(user, id);
   }
+
+  @Post(":id/close")
+  @UseGuards(SessionGuard)
+  close(@CurrentUser() user: SessionUser, @Param("id") id: string) {
+    return this.tasks.closeByOwner(user, id);
+  }
 }
 
 @Controller("claims")

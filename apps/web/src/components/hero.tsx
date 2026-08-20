@@ -38,10 +38,10 @@ export function Hero({ week, onOpenSubmit }: HeroProps) {
         </div>
         <div className="hero-proof">
           <div className="avatar-stack">
-            <span>林</span>
-            <span>J</span>
-            <span>麦</span>
-            <span>V</span>
+            {(week?.helpers.slice(0, 4) ?? []).map((helper) => (
+              <span key={helper.userId}>{helper.name.slice(0, 1)}</span>
+            ))}
+            {(week?.helpers.length ?? 0) === 0 && <span>火</span>}
           </div>
           <strong>{memberCount || "--"}</strong>
           <span>位独立开发者已入场</span>

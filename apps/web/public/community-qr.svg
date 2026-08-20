@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="星火场社群二维码占位">
+  <rect width="240" height="240" fill="#fffefa"/>
+  <rect x="12" y="12" width="216" height="216" fill="none" stroke="#191a16" stroke-width="8"/>
+  <rect x="28" y="28" width="52" height="52" fill="#191a16"/>
+  <rect x="36" y="36" width="36" height="36" fill="#fffefa"/>
+  <rect x="44" y="44" width="20" height="20" fill="#191a16"/>
+  <rect x="160" y="28" width="52" height="52" fill="#191a16"/>
+  <rect x="168" y="36" width="36" height="36" fill="#fffefa"/>
+  <rect x="176" y="44" width="20" height="20" fill="#191a16"/>
+  <rect x="28" y="160" width="52" height="52" fill="#191a16"/>
+  <rect x="36" y="168" width="36" height="36" fill="#fffefa"/>
+  <rect x="44" y="176" width="20" height="20" fill="#191a16"/>
+  <rect x="100" y="36" width="16" height="16" fill="#191a16"/>
+  <rect x="128" y="36" width="16" height="16" fill="#191a16"/>
+  <rect x="100" y="64" width="16" height="16" fill="#191a16"/>
+  <rect x="36" y="100" width="16" height="16" fill="#191a16"/>
+  <rect x="64" y="112" width="16" height="16" fill="#191a16"/>
+  <rect x="96" y="96" width="48" height="48" fill="#dfff53"/>
+  <rect x="108" y="108" width="24" height="24" fill="#191a16"/>
+  <rect x="160" y="100" width="16" height="16" fill="#191a16"/>
+  <rect x="184" y="112" width="16" height="16" fill="#191a16"/>
+  <rect x="148" y="148" width="16" height="16" fill="#191a16"/>
+  <rect x="176" y="160" width="16" height="16" fill="#191a16"/>
+  <rect x="160" y="184" width="16" height="16" fill="#191a16"/>
+  <rect x="196" y="184" width="16" height="16" fill="#191a16"/>
+  <rect x="100" y="176" width="16" height="16" fill="#191a16"/>
+  <rect x="124" y="196" width="16" height="16" fill="#191a16"/>
+  <rect x="96" y="148" width="16" height="16" fill="#191a16"/>
+</svg>

@@ -65,7 +65,7 @@ export class SocialController {
       throw new BadRequestException("请不要重复发表相似评论");
     }
     const project = await this.prisma.project.findUnique({ where: { id } });
-    if (!project) throw new NotFoundException("项目不存在");
+    if (!project) throw new NotFoundException("产品不存在");
     const comment = await this.prisma.comment.create({
       data: { projectId: id, userId: user.id, body: body.body },
     });

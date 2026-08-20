@@ -34,7 +34,7 @@ export function AppChrome({ children }: AppChromeProps) {
   const openSubmit = () => {
     if (!user) {
       setShowAuth(true);
-      notify("登录后即可发布作品");
+      notify("登录后即可发布产品");
       return;
     }
     setShowSubmit(true);

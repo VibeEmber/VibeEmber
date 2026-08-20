@@ -166,7 +166,8 @@ This project follows a **VibeCoding** development model:
 
 - Sign in and publish a real product
 - Try other products and tell the makers what actually happened
-- Open GitHub Issues for features, ops ideas, and bugs
+- Scan the community QR on the site, or write to hello@vibember.dev
+- Open [GitHub](https://github.com/VibeEmber/VibeEmber) Issues for features, ops ideas, and bugs
 - Contribute frontend, backend, security, docs, or product design
 - Invite people who are actually shipping
 

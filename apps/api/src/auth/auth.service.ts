@@ -33,6 +33,7 @@ export class AuthService {
       user: {
         additionalFields: {
           role: { type: "string", defaultValue: "member", input: false },
+          bio: { type: "string", defaultValue: "", input: false },
         },
       },
       databaseHooks: {
@@ -79,6 +80,7 @@ export class AuthService {
       name: String(raw.name ?? ""),
       image: (raw.image as string | null) ?? null,
       role: raw.role === "admin" ? "admin" : "member",
+      bio: typeof raw.bio === "string" ? raw.bio : undefined,
     };
   }
 }

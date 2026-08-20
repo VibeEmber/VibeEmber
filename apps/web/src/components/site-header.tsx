@@ -4,8 +4,10 @@
 import { Bell, Plus, Search, UserCircle, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { api, type NotificationItem, type SessionUser } from "@vibeember/shared";
 import { EmberMark } from "./ember-mark";
+import { notificationHref } from "@/lib/notification-href";
 
 interface SiteHeaderProps {
   user: SessionUser | null;
@@ -26,9 +28,11 @@ export function SiteHeader({
   onOpenSubmit,
   onOpenAccount,
 }: SiteHeaderProps) {
+  const pathname = usePathname();
   const [unread, setUnread] = useState(0);
   const [notes, setNotes] = useState<NotificationItem[]>([]);
   const [openNotes, setOpenNotes] = useState(false);
+  const home = pathname === "/";
 
   useEffect(() => {
     if (!user) return;
@@ -45,10 +49,9 @@ export function SiteHeader({
           <EmberMark size={20} />
         </span>
         <span>星火场</span>
-        <small>EMBER</small>
       </Link>
       <nav className="desktop-nav" aria-label="主导航">
-        <Link className="active" href="/#discover">
+        <Link className={home ? "active" : ""} href="/#discover">
           看星火
         </Link>
         <Link href="/#help">去助燃</Link>
@@ -74,7 +77,7 @@ export function SiteHeader({
           {unread > 0 && <i />}
         </button>
         <button className="submit-button" onClick={onOpenSubmit}>
-          <Plus size={17} /> 发布项目
+          <Plus size={17} /> 发布产品
         </button>
         <button
           className={user ? "avatar-button signed-in" : "account-button"}
@@ -126,15 +129,13 @@ export function SiteHeader({
         </div>
       )}
       {openNotes && (
-        <div
-          className="header-search"
-          style={{ top: 81, maxHeight: 280, overflow: "auto", display: "grid" }}
-        >
+        <div className="notes-panel">
           {notes.length === 0 && <small>暂无通知</small>}
           {notes.map((item) => (
-            <p key={item.id} style={{ margin: 0 }}>
-              <b>{item.title}</b> {item.body}
-            </p>
+            <Link key={item.id} href={notificationHref(item)} onClick={() => setOpenNotes(false)}>
+              <b>{item.title}</b>
+              {item.body ? <span>{item.body}</span> : null}
+            </Link>
           ))}
         </div>
       )}

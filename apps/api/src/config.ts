@@ -41,7 +41,7 @@ export function readConfig(): AppConfig {
       user: process.env.SMTP_USER || undefined,
       pass: process.env.SMTP_PASS || undefined,
     },
-    mailFrom: process.env.MAIL_FROM ?? "VibeEmber <no-reply@vibeember.dev>",
+    mailFrom: process.env.MAIL_FROM ?? "星火场 <noreply@vibember.dev>",
     databaseUrl: process.env.DATABASE_URL ?? "postgresql://vibe:vibe@localhost:5432/vibeember",
   };
 }

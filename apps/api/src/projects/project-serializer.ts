@@ -55,7 +55,14 @@ export function serializeProject(
     bookmarked: flags?.bookmarked,
   };
   if (!includePrivate) return data;
-  return { ...data, ownerEmail: project.owner.email, rejectionReason: project.rejectionReason };
+  return {
+    ...data,
+    ownerEmail: project.owner.email,
+    rejectionReason: project.rejectionReason,
+    logoKey: project.logoKey,
+    screenshotKeys: screenshots.map((item) => item.key),
+    extraQrKey: extraQr?.key ?? null,
+  };
 }
 
 export const projectInclude = {

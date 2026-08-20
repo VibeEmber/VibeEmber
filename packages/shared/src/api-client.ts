@@ -57,7 +57,14 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input),
     }),
+  updateProject: (id: string, input: ProjectCreateInput) =>
+    apiFetch<{ id: string; status: ProjectStatus }>(`/api/projects/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }),
   myProjects: () => apiFetch<{ projects: ProjectPrivate[] }>("/api/projects/mine"),
+  myBookmarks: () => apiFetch<{ projects: ProjectPublic[] }>("/api/me/bookmarks"),
+  myTasks: () => apiFetch<TaskPublic[]>("/api/me/tasks"),
   adminProjects: (status: ProjectStatus) =>
     apiFetch<{ projects: ProjectPrivate[] }>(`/api/admin/projects?status=${status}`),
   reviewProject: (id: string, input: ReviewInput) =>
@@ -83,6 +90,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input),
     }),
+  closeTask: (id: string) =>
+    apiFetch<{ ok: boolean }>(`/api/tasks/${id}/close`, { method: "POST" }),
   claimTask: (id: string) =>
     apiFetch<{ id: string; status: string; submitBy: string }>(`/api/tasks/${id}/claim`, {
       method: "POST",

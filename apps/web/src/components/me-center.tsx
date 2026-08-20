@@ -3,6 +3,7 @@
 
 import {
   ArrowRight,
+  Bookmark,
   BookOpen,
   Check,
   Flame,
@@ -27,14 +28,17 @@ import {
 } from "@vibeember/shared";
 import type {
   ProjectPrivate,
+  ProjectPublic,
   SessionUser,
   SparkLedgerItem,
   SparkSummary,
   TaskClaimItem,
+  TaskPublic,
   TaskReportItem,
 } from "@vibeember/shared";
 import { authClient } from "@/lib/auth-client";
 import { AuthModal } from "./modals/auth-modal";
+import { SubmitModal } from "./modals/submit-modal";
 import { TaskClaimModal } from "./modals/task-claim-modal";
 import { TaskCreateModal } from "./modals/task-create-modal";
 import { Toast } from "./toast";
@@ -42,7 +46,8 @@ import { Toast } from "./toast";
 const TABS = [
   { id: "overview", label: "概览", icon: UserRound },
   { id: "projects", label: "我的产品", icon: Rocket },
-  { id: "aid", label: "互助", icon: Users },
+  { id: "aid", label: "助燃", icon: Users },
+  { id: "bookmarks", label: "收藏", icon: Bookmark },
   { id: "ledger", label: "火苗账本", icon: Flame },
   { id: "review", label: "投稿审核", icon: ShieldCheck, admin: true },
   { id: "reports", label: "抽查举报", icon: BookOpen, admin: true },
@@ -67,7 +72,12 @@ export function MeCenter({ user }: { user: SessionUser }) {
   const [reports, setReports] = useState<TaskReportItem[]>([]);
   const [ledger, setLedger] = useState<SparkLedgerItem[]>([]);
   const [creatingFor, setCreatingFor] = useState<ProjectPrivate | null>(null);
+  const [editingProject, setEditingProject] = useState<ProjectPrivate | null>(null);
   const [activeClaim, setActiveClaim] = useState<TaskClaimItem | null>(null);
+  const [bookmarks, setBookmarks] = useState<ProjectPublic[]>([]);
+  const [myTasks, setMyTasks] = useState<TaskPublic[]>([]);
+  const [displayName, setDisplayName] = useState(user.name);
+  const [bio, setBio] = useState(user.bio ?? "");
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState("");
@@ -86,18 +96,23 @@ export function MeCenter({ user }: { user: SessionUser }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const [mine, sparkSummary, myClaims, pending, ledgerRows] = await Promise.all([
-          api.myProjects(),
-          api.sparks(),
-          api.myClaims(),
-          api.pendingReviews(),
-          api.ledger(),
-        ]);
+        const [mine, sparkSummary, myClaims, pending, ledgerRows, saved, ownedTasks] =
+          await Promise.all([
+            api.myProjects(),
+            api.sparks(),
+            api.myClaims(),
+            api.pendingReviews(),
+            api.ledger(),
+            api.myBookmarks(),
+            api.myTasks(),
+          ]);
         setMyProjects(mine.projects);
         setSparks(sparkSummary);
         setClaims(myClaims);
         setReviews(pending);
         setLedger(ledgerRows);
+        setBookmarks(saved.projects);
+        setMyTasks(ownedTasks);
         if (user.role === "admin") {
           const [queue, reportList] = await Promise.all([
             api.adminProjects("pending"),
@@ -162,6 +177,7 @@ export function MeCenter({ user }: { user: SessionUser }) {
 
   const badge = (id: TabId) => {
     if (id === "projects") return myProjects.length;
+    if (id === "bookmarks") return bookmarks.length;
     if (id === "aid")
       return reviews.length + claims.filter((item) => item.status === "claimed").length;
     if (id === "review") return reviewProjects.length;
@@ -212,7 +228,7 @@ export function MeCenter({ user }: { user: SessionUser }) {
                 <UserRound size={15} /> 个人中心
               </span>
               <h1>概览</h1>
-              <p>资料、火苗和待办分开放，避免挤在一个对话框里。</p>
+              <p>资料、火苗和待办分开放。公开主页会展示头像、昵称和简介。</p>
             </header>
             <div className="me-stats">
               <article>
@@ -233,7 +249,7 @@ export function MeCenter({ user }: { user: SessionUser }) {
                 </small>
               </article>
               <article>
-                <span>待处理互助</span>
+                <span>待处理助燃</span>
                 <strong>{reviews.length}</strong>
                 <small>待提交 {claims.filter((item) => item.status === "claimed").length}</small>
               </article>
@@ -249,9 +265,39 @@ export function MeCenter({ user }: { user: SessionUser }) {
                   更换头像
                 </button>
               </div>
-              <p className="form-hint">
-                公开主页会展示这个头像。邮箱用于登录，不在社区卡片上公开。
-              </p>
+              <p className="form-hint">邮箱用于登录，不在社区卡片上公开。</p>
+              <label>
+                昵称
+                <input
+                  value={displayName}
+                  maxLength={30}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                />
+              </label>
+              <label>
+                简介
+                <textarea
+                  value={bio}
+                  maxLength={160}
+                  placeholder="一句话介绍你在场里做什么"
+                  onChange={(event) => setBio(event.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                className="upload-button"
+                disabled={busy}
+                onClick={() =>
+                  void api
+                    .updateMe({ name: displayName.trim(), bio })
+                    .then(() => onNotify("资料已更新"))
+                    .catch((error: unknown) =>
+                      onNotify(error instanceof Error ? error.message : "保存失败"),
+                    )
+                }
+              >
+                保存资料
+              </button>
               <input
                 ref={avatarInputRef}
                 type="file"
@@ -270,7 +316,7 @@ export function MeCenter({ user }: { user: SessionUser }) {
                 <Rocket size={15} /> 我的产品
               </span>
               <h1>项目状态</h1>
-              <p>提交后在这里跟踪审核进度，已上线项目可以发起助燃。</p>
+              <p>提交后在这里跟踪审核进度。被驳回的可以改完再投；已上线产品可以发起或结束助燃。</p>
             </header>
             <div className="submission-list mine me-list">
               {myProjects.map((project) => (
@@ -298,6 +344,11 @@ export function MeCenter({ user }: { user: SessionUser }) {
                         <Flame size={14} /> 发起助燃
                       </button>
                     )}
+                    {project.status === "rejected" && (
+                      <button type="button" onClick={() => setEditingProject(project)}>
+                        修改后再投
+                      </button>
+                    )}
                     <span className={`status-pill ${project.status}`}>
                       {project.status === "approved"
                         ? "已上线"
@@ -309,7 +360,7 @@ export function MeCenter({ user }: { user: SessionUser }) {
                 </article>
               ))}
               {myProjects.length === 0 && (
-                <div className="panel-empty">你还没有提交项目，发布第一个吧。</div>
+                <div className="panel-empty">你还没有提交产品，发布第一个吧。</div>
               )}
             </div>
           </>
@@ -319,10 +370,12 @@ export function MeCenter({ user }: { user: SessionUser }) {
           <>
             <header className="me-heading">
               <span className="section-kicker">
-                <Users size={15} /> 互助
+                <Users size={15} /> 助燃
               </span>
-              <h1>互助</h1>
-              <p>可用火苗 {sparks?.available ?? 0}。左边验收别人帮你的反馈，下面是你领取的任务。</p>
+              <h1>助燃</h1>
+              <p>
+                可用火苗 {sparks?.available ?? 0}。先验收别人帮你的反馈，再看你领取和发起的助燃。
+              </p>
             </header>
             <div className="submission-list mine me-list">
               {reviews.map((item) => (
@@ -362,9 +415,86 @@ export function MeCenter({ user }: { user: SessionUser }) {
                   )}
                 </article>
               ))}
-              {reviews.length === 0 && claims.length === 0 && (
+              {myTasks
+                .filter((task) => task.status === "open" || task.status === "full")
+                .map((task) => (
+                  <article key={task.id}>
+                    <div>
+                      <span>
+                        我发起的 · {task.projectName} · 冻 {task.frozenAmount ?? 0}
+                      </span>
+                      <h4>{task.title}</h4>
+                      <p>
+                        {task.claimedCount}/{task.quota} 人领取 · {task.acceptedCount} 条已通过
+                      </p>
+                    </div>
+                    <div className="review-actions">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void api
+                            .closeTask(task.id)
+                            .then(() => {
+                              setMyTasks((rows) =>
+                                rows.map((row) =>
+                                  row.id === task.id ? { ...row, status: "closed" } : row,
+                                ),
+                              );
+                              onNotify("助燃已结束，未用冻结已退回");
+                              void api.sparks().then(setSparks);
+                              void api.ledger().then(setLedger);
+                            })
+                            .catch((error: unknown) =>
+                              onNotify(error instanceof Error ? error.message : "结束失败"),
+                            )
+                        }
+                      >
+                        结束助燃
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              {reviews.length === 0 && claims.length === 0 && myTasks.length === 0 && (
                 <div className="panel-empty">还没有助燃记录。</div>
               )}
+            </div>
+          </>
+        )}
+
+        {tab === "bookmarks" && (
+          <>
+            <header className="me-heading">
+              <span className="section-kicker">
+                <Bookmark size={15} /> 收藏
+              </span>
+              <h1>我收藏的产品</h1>
+              <p>在详情页或首页卡片点书签，就会出现在这里。</p>
+            </header>
+            <div className="submission-list mine me-list">
+              {bookmarks.map((project) => (
+                <article key={project.id}>
+                  <div>
+                    <span>{project.kindLabel}</span>
+                    <h4>
+                      <Link href={`/p/${project.id}`}>{project.name}</Link>
+                    </h4>
+                    <p>{project.tagline}</p>
+                  </div>
+                  <div className="review-actions">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void api.toggleBookmark(project.id).then(() => {
+                          setBookmarks((rows) => rows.filter((row) => row.id !== project.id));
+                        })
+                      }
+                    >
+                      取消收藏
+                    </button>
+                  </div>
+                </article>
+              ))}
+              {bookmarks.length === 0 && <div className="panel-empty">还没有收藏。</div>}
             </div>
           </>
         )}
@@ -449,38 +579,85 @@ export function MeCenter({ user }: { user: SessionUser }) {
               <span className="section-kicker">
                 <BookOpen size={15} /> 抽查举报
               </span>
-              <h1>待处理举报</h1>
-              <p>处理系统抽查和用户举报的互助结果，维护社区公平。</p>
+              <h1>待处理抽查与举报</h1>
+              <p>系统抽查用来追回不实反馈；用户举报用来改判被误驳的助燃。两套按钮不一样。</p>
             </header>
             <div className="submission-list mine me-list">
               {reports.map((item) => (
                 <article key={item.id}>
                   <div>
-                    <span>{item.kind === "spot_check" ? "系统抽查" : item.reporterName}</span>
+                    <span>
+                      {item.kind === "spot_check" ? "系统抽查" : `用户举报 · ${item.reporterName}`}{" "}
+                      · {item.projectName} · {item.helperName} · {item.reward} 火苗
+                    </span>
                     <h4>{item.taskTitle}</h4>
                     <p>{item.reason}</p>
+                    {item.answers.map((answer, index) => (
+                      <p key={index}>{answer}</p>
+                    ))}
+                    {item.screenshotUrl && (
+                      <a href={item.screenshotUrl} target="_blank" rel="noreferrer">
+                        查看使用截图
+                      </a>
+                    )}
                   </div>
                   <div className="review-actions">
-                    <button
-                      onClick={() =>
-                        void api.resolveReport(item.id, "dismissed", "维持原判").then(() => {
-                          setReports((rows) => rows.filter((row) => row.id !== item.id));
-                        })
-                      }
-                    >
-                      驳回举报
-                    </button>
-                    <button
-                      className="approve"
-                      onClick={() =>
-                        void api.resolveReport(item.id, "upheld", "改判补发").then(() => {
-                          setReports((rows) => rows.filter((row) => row.id !== item.id));
-                          onNotify("已改判并补发火苗");
-                        })
-                      }
-                    >
-                      改判
-                    </button>
+                    {item.kind === "spot_check" ? (
+                      <>
+                        <button
+                          onClick={() =>
+                            void api
+                              .resolveReport(item.id, "dismissed", "抽查通过，维持原判")
+                              .then(() => {
+                                setReports((rows) => rows.filter((row) => row.id !== item.id));
+                                onNotify("抽查通过，维持原验收");
+                              })
+                          }
+                        >
+                          抽查通过
+                        </button>
+                        <button
+                          onClick={() =>
+                            void api
+                              .resolveReport(item.id, "upheld", "抽查未通过，追回火苗")
+                              .then(() => {
+                                setReports((rows) => rows.filter((row) => row.id !== item.id));
+                                onNotify("已追回不实反馈的火苗");
+                              })
+                          }
+                        >
+                          判定不实并追回
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() =>
+                            void api
+                              .resolveReport(item.id, "dismissed", "举报不成立，维持原判")
+                              .then(() => {
+                                setReports((rows) => rows.filter((row) => row.id !== item.id));
+                                onNotify("已维持原判");
+                              })
+                          }
+                        >
+                          维持原判
+                        </button>
+                        <button
+                          className="approve"
+                          onClick={() =>
+                            void api
+                              .resolveReport(item.id, "upheld", "举报成立，从发起人支付赏金")
+                              .then(() => {
+                                setReports((rows) => rows.filter((row) => row.id !== item.id));
+                                onNotify("已改判：从发起人账户支付赏金");
+                              })
+                          }
+                        >
+                          改判并支付
+                        </button>
+                      </>
+                    )}
                   </div>
                 </article>
               ))}
@@ -500,6 +677,19 @@ export function MeCenter({ user }: { user: SessionUser }) {
             setCreatingFor(null);
             void api.sparks().then(setSparks);
             void api.ledger().then(setLedger);
+            void api.myTasks().then(setMyTasks);
+          }}
+        />
+      )}
+      {editingProject && (
+        <SubmitModal
+          project={editingProject}
+          onClose={() => setEditingProject(null)}
+          onNotify={onNotify}
+          onSubmitted={(message) => {
+            setEditingProject(null);
+            onNotify(message);
+            void api.myProjects().then((data) => setMyProjects(data.projects));
           }}
         />
       )}
@@ -531,7 +721,7 @@ export function MeGate() {
     return (
       <div className="me-signin">
         <h1>先登录，再进个人中心</h1>
-        <p>产品、互助验收和火苗账本都记在这个账号上。</p>
+        <p>产品、助燃验收和火苗账本都记在这个账号上。</p>
         <button className="primary-button" onClick={() => setShowAuth(true)}>
           登录 / 注册
         </button>

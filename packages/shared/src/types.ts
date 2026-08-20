@@ -10,6 +10,7 @@ export interface SessionUser {
   name: string;
   image: string | null;
   role: UserRole;
+  bio?: string;
 }
 
 export interface ProjectPublic {
@@ -41,6 +42,9 @@ export interface ProjectPublic {
 export interface ProjectPrivate extends ProjectPublic {
   ownerEmail: string;
   rejectionReason: string;
+  logoKey: string | null;
+  screenshotKeys: string[];
+  extraQrKey: string | null;
 }
 
 export interface SparkSummary {
@@ -77,6 +81,7 @@ export interface TaskPublic {
   quota: number;
   claimedCount: number;
   acceptedCount: number;
+  frozenAmount?: number;
   status: string;
   deadline: string;
   createdAt: string;
@@ -170,5 +175,11 @@ export interface TaskReportItem {
   kind: string;
   status: string;
   reporterName: string;
+  helperName: string;
+  projectName: string;
+  reward: number;
+  claimStatus: string;
+  answers: string[];
+  screenshotUrl: string | null;
   createdAt: string;
 }

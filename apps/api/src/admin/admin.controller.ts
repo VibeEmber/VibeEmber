@@ -36,8 +36,6 @@ export class AdminController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
-    private readonly sparks: SparkService,
-    private readonly credit: CreditService,
     private readonly notify: NotifyService,
   ) {}
 
@@ -90,8 +88,19 @@ export class AdminController {
       return project;
     });
     if (!existing) {
-      throw new NotFoundException("项目不存在");
+      throw new NotFoundException("产品不存在");
     }
+    await this.notify.push({
+      userId: existing.ownerId,
+      type: body.action === "approved" ? "project_approved" : "project_rejected",
+      title: body.action === "approved" ? "你的产品已上线" : "你的产品未通过审核",
+      body:
+        body.action === "approved"
+          ? `${existing.name} 已出现在星火场首页。`
+          : `${existing.name}：${body.reason}`,
+      refType: "project",
+      refId: id,
+    });
     return { id, status: body.action };
   }
 }
@@ -102,6 +111,7 @@ export class AdminController {
 export class AdminOpsController {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
     private readonly sparks: SparkService,
     private readonly credit: CreditService,
     private readonly notify: NotifyService,
@@ -113,7 +123,7 @@ export class AdminOpsController {
       where: { status: "pending" },
       include: {
         reporter: true,
-        claim: { include: { task: true, user: true } },
+        claim: { include: { task: { include: { project: true } }, user: true } },
       },
       orderBy: { createdAt: "asc" },
       take: 100,
@@ -127,6 +137,14 @@ export class AdminOpsController {
         kind: row.kind,
         status: row.status,
         reporterName: row.kind === "spot_check" ? "系统抽查" : row.reporter.name,
+        helperName: row.claim.user.name,
+        projectName: row.claim.task.project.name,
+        reward: row.claim.task.reward,
+        claimStatus: row.claim.status,
+        answers: Array.isArray(row.claim.answers) ? (row.claim.answers as string[]) : [],
+        screenshotUrl: row.claim.screenshotKey
+          ? this.storage.publicUrl(row.claim.screenshotKey)
+          : null,
         createdAt: row.createdAt.toISOString(),
       })),
     };
@@ -153,26 +171,46 @@ export class AdminOpsController {
         resolvedAt: new Date(),
       },
     });
+    const reward = report.claim.task.reward;
     if (
       body.action === "upheld" &&
       report.kind !== "spot_check" &&
       report.claim.status === "rejected"
     ) {
-      await this.prisma.taskClaim.update({
-        where: { id: report.claimId },
-        data: {
-          status: "accepted",
-          reviewNote: `管理员改判：${body.resolution}`,
-          reviewedAt: new Date(),
-        },
-      });
-      await this.sparks.apply({
-        userId: report.claim.userId,
-        amount: report.claim.task.reward,
-        type: "admin_adjust",
-        refType: "report",
-        refId: report.id,
-        memo: "举报成立，补发任务赏金",
+      const stillFrozen = report.claim.task.frozenAmount >= reward;
+      await this.prisma.$transaction(async (tx) => {
+        await tx.taskClaim.update({
+          where: { id: report.claimId },
+          data: {
+            status: "accepted",
+            reviewNote: `管理员改判：${body.resolution}`,
+            reviewedAt: new Date(),
+          },
+        });
+        await tx.task.update({
+          where: { id: report.claim.taskId },
+          data: {
+            acceptedCount: { increment: 1 },
+            ...(stillFrozen ? { frozenAmount: { decrement: reward } } : {}),
+          },
+        });
+        await this.sparks.applyIn(tx, {
+          userId: report.claim.task.ownerId,
+          amount: -reward,
+          freezeDelta: stillFrozen ? -reward : 0,
+          type: stillFrozen ? "task_unfreeze" : "admin_adjust",
+          refType: "report",
+          refId: report.id,
+          memo: stillFrozen ? "举报成立，从冻结款支付赏金" : "举报成立，从发起人可用火苗支付赏金",
+        });
+        await this.sparks.applyIn(tx, {
+          userId: report.claim.userId,
+          amount: reward,
+          type: "admin_adjust",
+          refType: "report",
+          refId: report.id,
+          memo: "举报成立，补发任务赏金",
+        });
       });
       await this.credit.adjust(report.claim.task.ownerId, CREDIT.reportUpheldOwnerDelta);
       await this.notify.push({
@@ -182,39 +220,49 @@ export class AdminOpsController {
         refType: "claim",
         refId: report.claimId,
       });
+      await this.notify.push({
+        userId: report.claim.task.ownerId,
+        type: "report_upheld_owner",
+        title: "助燃举报成立，已从你的火苗支付赏金",
+        body: report.claim.task.title,
+        refType: "claim",
+        refId: report.claimId,
+      });
     }
     if (
       body.action === "upheld" &&
       report.kind === "spot_check" &&
       report.claim.status === "accepted"
     ) {
-      await this.prisma.taskClaim.update({
-        where: { id: report.claimId },
-        data: {
-          status: "rejected",
-          reviewNote: `抽查未通过：${body.resolution}`,
-          reviewedAt: new Date(),
-        },
-      });
-      await this.prisma.task.update({
-        where: { id: report.claim.taskId },
-        data: { acceptedCount: { decrement: 1 } },
-      });
-      await this.sparks.apply({
-        userId: report.claim.userId,
-        amount: -report.claim.task.reward,
-        type: "admin_adjust",
-        refType: "report",
-        refId: report.id,
-        memo: "抽查未通过，追回任务赏金",
-      });
-      await this.sparks.apply({
-        userId: report.claim.task.ownerId,
-        amount: report.claim.task.reward,
-        type: "admin_adjust",
-        refType: "report",
-        refId: report.id,
-        memo: "抽查追回，退回已支付赏金",
+      await this.prisma.$transaction(async (tx) => {
+        await tx.taskClaim.update({
+          where: { id: report.claimId },
+          data: {
+            status: "rejected",
+            reviewNote: `抽查未通过：${body.resolution}`,
+            reviewedAt: new Date(),
+          },
+        });
+        await tx.task.update({
+          where: { id: report.claim.taskId },
+          data: { acceptedCount: { decrement: 1 } },
+        });
+        await this.sparks.applyIn(tx, {
+          userId: report.claim.userId,
+          amount: -reward,
+          type: "admin_adjust",
+          refType: "report",
+          refId: report.id,
+          memo: "抽查未通过，追回任务赏金",
+        });
+        await this.sparks.applyIn(tx, {
+          userId: report.claim.task.ownerId,
+          amount: reward,
+          type: "admin_adjust",
+          refType: "report",
+          refId: report.id,
+          memo: "抽查追回，退回已支付赏金",
+        });
       });
       await this.credit.adjust(report.claim.userId, CREDIT.rejectDelta);
       await this.notify.push({
