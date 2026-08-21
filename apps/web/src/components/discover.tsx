@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, ChevronRight, CircleHelp, Flame, Search, Star } from "lucide-react";
+import { ArrowRight, ChevronRight, CircleHelp, Flame, Search, Star } from "./spark-icons";
 import { PROJECT_KINDS, type CommunityWeek } from "@vibeember/shared";
 import { categoryFilters } from "@/data/fallback";
 import { ProjectCard } from "./project-card";

@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { Bell, Plus, Search, UserCircle, X } from "lucide-react";
+import { Bell, Plus, Search, UserCircle, X } from "./spark-icons";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -46,9 +46,12 @@ export function SiteHeader({
     <header className="site-header">
       <Link className="brand" href="/#top" aria-label="星火场首页">
         <span className="brand-mark">
-          <EmberMark size={20} />
+          <EmberMark size={22} />
         </span>
-        <span>星火场</span>
+        <span className="brand-copy">
+          <b>星火场</b>
+          <small>VIBEEMBER</small>
+        </span>
       </Link>
       <nav className="desktop-nav" aria-label="主导航">
         <Link className={home ? "active" : ""} href="/#discover">

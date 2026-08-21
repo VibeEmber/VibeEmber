@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Check, Clock3, Flame, Target, Users } from "lucide-react";
+import { ArrowRight, Check, Clock3, Flame, Target, Users } from "./spark-icons";
 import { useEffect, useState } from "react";
 import {
   api,

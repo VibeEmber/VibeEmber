@@ -1,6 +1,6 @@
 "use client";
 
-import { LoaderCircle, Mail, UserCircle } from "lucide-react";
+import { LoaderCircle, Mail, UserCircle } from "../spark-icons";
 import { useState, type FormEvent } from "react";
 import { authClient } from "@/lib/auth-client";
 import { GithubIcon } from "../github-icon";

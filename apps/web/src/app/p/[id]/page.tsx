@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { ArrowRight, Bookmark, Check, Flame, Heart, MessageCircle } from "lucide-react";
+import { ArrowRight, Bookmark, Check, Flame, Heart, MessageCircle } from "@/components/spark-icons";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";

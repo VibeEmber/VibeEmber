@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { Check, Flame, ImagePlus, LoaderCircle, X } from "lucide-react";
+import { Check, Flame, ImagePlus, LoaderCircle, X } from "../spark-icons";
 import { useRef, useState } from "react";
 import { PROJECT_LIMITS, UPLOAD_MAX_BYTES, api, uploadFile } from "@vibeember/shared";
 import type { TaskClaimItem } from "@vibeember/shared";

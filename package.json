@@ -8,7 +8,12 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "pnpm --filter \"./packages/**\" build && pnpm -r --parallel --stream dev",
+    "dev": "pnpm run dev:check -- 3000 4000 && pnpm run dev:prepare && pnpm -r --parallel --stream dev",
+    "dev:check": "node scripts/check-dev-ports.mjs",
+    "dev:prepare": "pnpm --filter \"./packages/**\" build",
+    "dev:web": "pnpm run dev:check -- 3000 && pnpm run dev:prepare && pnpm --filter @vibeember/web dev",
+    "dev:api": "pnpm run dev:check -- 4000 && pnpm run dev:prepare && pnpm --filter @vibeember/api dev",
+    "dev:worker": "pnpm run dev:prepare && pnpm --filter @vibeember/worker dev",
     "build": "pnpm -r build",
     "lint": "eslint . && pnpm --filter @vibeember/web lint",
     "lint:fix": "eslint . --fix && pnpm --filter @vibeember/web exec eslint . --fix",

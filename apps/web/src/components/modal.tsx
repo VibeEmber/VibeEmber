@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { X } from "lucide-react";
+import { X } from "./spark-icons";
 
 interface ModalProps {
   titleId: string;

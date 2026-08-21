@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutGrid } from "lucide-react";
+import { LayoutGrid } from "./spark-icons";
 import { SITE, SPARK_RULES } from "@vibeember/shared";
 import { AddKindlingIcon, FanFlameIcon, PrairieFireIcon } from "./ember-stage-icons";
 import { GithubIcon } from "./github-icon";

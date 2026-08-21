@@ -14,7 +14,7 @@ import {
   Upload,
   UserRound,
   Users,
-} from "lucide-react";
+} from "./spark-icons";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";

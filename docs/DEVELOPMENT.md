@@ -67,10 +67,12 @@ pnpm dev                      # 并行启动 web / api / worker / 包 watch
 单独启动：
 
 ```bash
-pnpm --filter @vibeember/api start
-pnpm --filter @vibeember/worker start
-pnpm --filter @vibeember/web dev
+pnpm dev:web                  # 前端 :3000
+pnpm dev:api                  # API :4000
+pnpm dev:worker               # 队列 worker
 ```
+
+`pnpm dev` / `pnpm dev:web` / `pnpm dev:api` 会先检查所需端口；如果已有开发服务仍在运行，会在构建前给出明确提示，避免重复启动多套 watcher。
 
 验证码邮件：打开 [http://localhost:8025](http://localhost:8025)。
 MinIO 控制台：[http://localhost:9001](http://localhost:9001)（账号 `vibe` / `vibeember-secret`）。
@@ -138,6 +140,9 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 ```bash
 pnpm dev            # 全仓并行开发
+pnpm dev:web        # 仅前端（先构建公共包）
+pnpm dev:api        # 仅 API（先构建公共包）
+pnpm dev:worker     # 仅 worker（先构建公共包）
 pnpm build          # 全仓构建
 pnpm lint           # ESLint
 pnpm lint:fix       # ESLint 自动修复

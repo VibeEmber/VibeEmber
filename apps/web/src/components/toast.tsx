@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check } from "./spark-icons";
 
 export function Toast({ message }: { message: string }) {
   if (!message) {

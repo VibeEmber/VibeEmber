@@ -1,4 +1,4 @@
-/** 星火场标志：微光聚成一粒星火，外圈是场。单色 currentColor，可叠在 lime 品牌块上。 */
+/** 星火场标志：场托住一粒火种。主体跟随 currentColor，火种使用品牌橙。 */
 export function EmberMark({ size = 19 }: { size?: number }) {
   return (
     <svg
@@ -9,14 +9,13 @@ export function EmberMark({ size = 19 }: { size?: number }) {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      <circle cx="16" cy="16.4" r="11" stroke="currentColor" strokeWidth="1.2" opacity="0.28" />
-      <circle cx="6.6" cy="8.2" r="1.35" fill="currentColor" opacity="0.42" />
-      <circle cx="26.2" cy="10.1" r="1.05" fill="currentColor" opacity="0.32" />
-      <circle cx="24.6" cy="24.4" r="1.2" fill="currentColor" opacity="0.48" />
       <path
-        d="M16 4.2c.55 6.4 3.55 9.15 8.55 9.75-5 .85-7.45 3.7-8.15 10.65-.7-6.95-3.85-9.8-8.85-10.65C12.55 13.35 15.45 10.6 16 4.2Z"
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M16.78 3.58c-.3-.52-1.05-.5-1.32.03-1.2 2.36-3.13 4.38-4.96 6.34-2.28 2.44-4.13 4.98-4.13 8.58 0 5.48 4.23 9.37 9.63 9.37s9.63-3.89 9.63-9.37c0-4.22-2.49-7.11-5.22-9.87-1.5-1.53-2.7-3.29-3.63-5.08ZM16 11.33c.67 1.8 2.23 3.29 3.35 4.82.75 1.04 1.21 2.1 1.21 3.48 0 2.67-1.98 4.54-4.56 4.54s-4.56-1.87-4.56-4.54c0-1.91.96-3.3 2.09-4.73.95-1.21 1.89-2.31 2.47-3.57Z"
         fill="currentColor"
       />
+      <circle cx="16" cy="19.35" r="2.15" fill="var(--ember-accent, #ff6334)" />
     </svg>
   );
 }

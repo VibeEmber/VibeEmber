@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
-import { ArrowRight, Bookmark, ExternalLink, Heart, MessageCircle } from "lucide-react";
+import { ArrowRight, Bookmark, ExternalLink, Heart, MessageCircle } from "./spark-icons";
 import type { DisplayProject } from "@/lib/types";
 
 interface ProjectCardProps {

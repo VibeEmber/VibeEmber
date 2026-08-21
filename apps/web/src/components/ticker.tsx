@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Zap } from "lucide-react";
+import { ArrowRight, Zap } from "./spark-icons";
 import type { CommunityWeek } from "@vibeember/shared";
 
 interface TickerProps {
@@ -13,7 +13,7 @@ export function Ticker({ week }: TickerProps) {
   return (
     <section className="ticker" aria-label="最新社区动态">
       <span className="ticker-title">
-        <Zap size={14} fill="currentColor" /> 刚刚发生
+        <Zap size={14} /> 刚刚发生
       </span>
       <p>
         {first ? (

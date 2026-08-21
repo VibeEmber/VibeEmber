@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { ArrowRight, ImagePlus, LoaderCircle, Rocket } from "lucide-react";
+import { ArrowRight, ImagePlus, LoaderCircle, Rocket } from "../spark-icons";
 import { useRef, useState, type FormEvent } from "react";
 import {
   MINI_PROGRAM_PLATFORMS,

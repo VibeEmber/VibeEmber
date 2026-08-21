@@ -1,6 +1,6 @@
 "use client";
 
-import { Flame, LoaderCircle, Rocket } from "lucide-react";
+import { Flame, LoaderCircle, Rocket } from "../spark-icons";
 import { useMemo, useState } from "react";
 import {
   FEEDBACK_TYPES,

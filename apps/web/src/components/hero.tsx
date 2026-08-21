@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Check, ChevronRight, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowRight, Check, ChevronRight, MessageCircle, Sparkles } from "./spark-icons";
 import type { CommunityWeek } from "@vibeember/shared";
 import { EmberMark } from "./ember-mark";
 
