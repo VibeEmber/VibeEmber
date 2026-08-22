@@ -47,6 +47,24 @@ a {
   color: inherit;
   text-decoration: none;
 }
+.skip-link {
+  position: fixed;
+  left: 16px;
+  top: 12px;
+  z-index: 200;
+  transform: translateY(-160%);
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  background: var(--lime);
+  color: var(--ink);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 900;
+  transition: transform 0.16s ease;
+}
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
 .spark-icon {
   flex: 0 0 auto;
   overflow: visible;
@@ -160,8 +178,8 @@ a {
   border: 0;
   background: transparent;
   cursor: pointer;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -196,7 +214,7 @@ a {
   cursor: pointer;
 }
 .account-button {
-  height: 36px;
+  min-height: 44px;
   border: 1px solid #c9c8c0;
   background: transparent;
   border-radius: 9px;
@@ -226,6 +244,7 @@ a {
   cursor: pointer;
   box-shadow: 2px 2px 0 var(--lime);
   margin-left: 5px;
+  min-height: 44px;
 }
 .submit-button:hover {
   transform: translateY(-1px);
@@ -257,8 +276,8 @@ a {
 .header-search button {
   border: 0;
   background: #ecebe5;
-  width: 27px;
-  height: 27px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -271,6 +290,12 @@ a {
   grid-template-columns: 1.04fr 0.96fr;
   border-bottom: 1px solid var(--line);
   overflow: hidden;
+}
+.hero,
+.discover,
+.help-section,
+.how-section {
+  scroll-margin-top: 150px;
 }
 .hero-copy {
   display: flex;
@@ -346,7 +371,9 @@ a {
   font-weight: 800;
   cursor: pointer;
   box-shadow: 4px 4px 0 var(--lime);
-  transition: 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
 }
 .primary-button:hover {
   transform: translate(-1px, -2px);
@@ -739,7 +766,9 @@ a {
   border: 1px solid #d9d8d0;
   border-radius: 14px;
   overflow: hidden;
-  transition: 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   animation: fadeUp 0.45s both;
   animation-delay: var(--delay);
 }
@@ -1039,6 +1068,19 @@ a {
 .empty-state p {
   font-size: 12px;
 }
+.empty-action {
+  min-height: 44px;
+  margin-top: 14px;
+  border: 1px solid var(--ink);
+  border-radius: 9px;
+  background: var(--ink);
+  color: white;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--lime);
+}
 
 .help-section {
   background: #20231d;
@@ -1127,7 +1169,9 @@ a {
   background: #292c26;
   border-radius: 13px;
   padding: 14px 16px;
-  transition: 0.18s;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease;
 }
 .task-card:hover {
   border-color: #61665a;
@@ -1379,6 +1423,7 @@ footer {
   width: min(600px, 100%);
   max-height: calc(100vh - 36px);
   overflow: auto;
+  overscroll-behavior: contain;
   background: var(--white);
   border-radius: 18px;
   border: 1px solid var(--ink);
@@ -1392,8 +1437,8 @@ footer {
   top: 16px;
   border: 0;
   background: #ebeae4;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -1698,7 +1743,7 @@ footer {
   font-size: 12px;
   font-weight: 750;
   cursor: pointer;
-  transition: 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 .review-actions button:hover {
   border-color: var(--ink);
@@ -2094,21 +2139,25 @@ footer {
     height: 31px;
   }
   .header-actions .icon-button {
+    display: grid;
+  }
+  .header-actions .notification {
     display: none;
   }
   .submit-button {
-    font-size: 0;
-    width: 38px;
-    height: 38px;
-    padding: 0;
+    font-size: 12px;
+    width: auto;
+    height: 44px;
+    padding: 0 11px;
     justify-content: center;
+    margin-left: 0;
   }
   .submit-button svg {
     margin: 0;
   }
   .avatar-button {
-    width: 34px;
-    height: 34px;
+    width: 44px;
+    height: 44px;
   }
   .hero {
     min-height: 0;
@@ -2281,7 +2330,8 @@ footer {
 @media (max-width: 600px) {
   .account-button {
     font-size: 0;
-    width: 34px;
+    width: 44px;
+    min-height: 44px;
     padding: 0;
     justify-content: center;
   }
@@ -2315,6 +2365,19 @@ footer {
   .panel-title {
     align-items: flex-start;
   }
+}
+
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--lime);
+  outline-offset: 3px;
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 @media (prefers-reduced-motion: reduce) {
   * {
@@ -2970,6 +3033,12 @@ footer {
 .me-card textarea {
   min-height: 72px;
   resize: vertical;
+}
+body input:focus-visible,
+body textarea:focus-visible,
+body select:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 @media (max-width: 860px) {
   .me-shell {

@@ -118,10 +118,12 @@ export function AuthModal({ onClose, onNotify }: AuthModalProps) {
           邮箱
           <div className="otp-row">
             <input
+              name="email"
               type="email"
               required
               maxLength={180}
               autoComplete="email"
+              spellCheck={false}
               placeholder="name@example.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -143,6 +145,8 @@ export function AuthModal({ onClose, onNotify }: AuthModalProps) {
             <input
               name="otp"
               inputMode="numeric"
+              autoComplete="one-time-code"
+              spellCheck={false}
               pattern="[0-9]*"
               maxLength={8}
               minLength={4}
@@ -157,7 +161,7 @@ export function AuthModal({ onClose, onNotify }: AuthModalProps) {
         <button className="primary-button" type="submit" disabled={busy || !codeSent}>
           {busy ? (
             <>
-              <LoaderCircle className="spin" size={17} /> 请稍候
+              <LoaderCircle className="spin" size={17} /> 请稍候…
             </>
           ) : (
             <>

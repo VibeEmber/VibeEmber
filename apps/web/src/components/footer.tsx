@@ -5,6 +5,7 @@ import { useState } from "react";
 import { SITE } from "@vibeember/shared";
 import { EmberMark } from "./ember-mark";
 import { GithubIcon } from "./github-icon";
+import { Modal } from "./modal";
 
 export function Footer() {
   const [showQr, setShowQr] = useState(false);
@@ -33,34 +34,25 @@ export function Footer() {
       </div>
       <span>© 2026 星火场 · VibeEmber</span>
       {showQr && (
-        <div className="modal-backdrop" onClick={() => setShowQr(false)}>
-          <div
-            className="submit-modal community-modal"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              className="modal-close"
-              type="button"
-              aria-label="关闭"
-              onClick={() => setShowQr(false)}
-            >
-              ×
-            </button>
-            <span className="section-kicker">进场</span>
-            <h2>加入星火场</h2>
-            <p>扫码进群，发布真实作品、互相助燃。二维码先占位，群建好再换成正式码。</p>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={SITE.communityQr} alt="星火场社群二维码" width={180} height={180} />
-            <div className="community-actions">
-              <a className="primary-button" href={SITE.github} target="_blank" rel="noreferrer">
-                <GithubIcon size={16} /> GitHub
-              </a>
-              <a className="text-button" href={`mailto:${SITE.contactEmail}`}>
-                {SITE.contactEmail}
-              </a>
-            </div>
+        <Modal
+          titleId="community-title"
+          className="community-modal"
+          onClose={() => setShowQr(false)}
+        >
+          <span className="section-kicker">进场</span>
+          <h2 id="community-title">加入星火场</h2>
+          <p>扫码进群，发布真实作品、互相助燃。二维码先占位，群建好再换成正式码。</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={SITE.communityQr} alt="星火场社群二维码" width={180} height={180} />
+          <div className="community-actions">
+            <a className="primary-button" href={SITE.github} target="_blank" rel="noreferrer">
+              <GithubIcon size={16} /> GitHub
+            </a>
+            <a className="text-button" href={`mailto:${SITE.contactEmail}`}>
+              {SITE.contactEmail}
+            </a>
           </div>
-        </div>
+        </Modal>
       )}
     </footer>
   );

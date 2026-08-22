@@ -9,6 +9,7 @@ import type { DisplayProject } from "@/lib/types";
 interface DiscoverProps {
   projects: DisplayProject[];
   total: number;
+  search: string;
   category: string;
   setCategory: (value: string) => void;
   kind: string;
@@ -19,12 +20,14 @@ interface DiscoverProps {
   onToggleBookmark: (id: number | string) => void;
   week: CommunityWeek | null;
   onNotify: (message: string) => void;
+  onOpenSubmit: () => void;
   onOpenSearch: () => void;
 }
 
 export function Discover({
   projects,
   total,
+  search,
   category,
   setCategory,
   kind,
@@ -35,8 +38,10 @@ export function Discover({
   onToggleBookmark,
   week,
   onNotify,
+  onOpenSubmit,
   onOpenSearch,
 }: DiscoverProps) {
+  const hasFilters = Boolean(search.trim() || kind !== "全部" || category !== "全部");
   return (
     <section className="discover section-wrap" id="discover">
       <div className="section-heading">
@@ -58,14 +63,19 @@ export function Discover({
         </button>
       </div>
 
-      <div className="category-row" role="tablist" aria-label="产品形态">
-        <button className={kind === "全部" ? "selected" : ""} onClick={() => setKind("全部")}>
+      <div className="category-row" role="group" aria-label="按产品形态筛选">
+        <button
+          className={kind === "全部" ? "selected" : ""}
+          aria-pressed={kind === "全部"}
+          onClick={() => setKind("全部")}
+        >
           全部形态
         </button>
         {PROJECT_KINDS.map((item) => (
           <button
             key={item.id}
             className={kind === item.label ? "selected" : ""}
+            aria-pressed={kind === item.label}
             onClick={() => setKind(item.label)}
           >
             {item.label}
@@ -73,11 +83,12 @@ export function Discover({
         ))}
       </div>
 
-      <div className="category-row" role="tablist" aria-label="话题">
+      <div className="category-row" role="group" aria-label="按话题筛选">
         {categoryFilters.map((item) => (
           <button
             key={item}
             className={category === item ? "selected" : ""}
+            aria-pressed={category === item}
             onClick={() => setCategory(item)}
           >
             {item}
@@ -85,9 +96,11 @@ export function Discover({
         ))}
       </div>
       <p className="count-note">
-        {kind === "全部" && category === "全部"
-          ? "展示全部产品"
-          : `${kind === "全部" ? "" : kind}${category === "全部" ? "" : " · " + category}`}
+        {search.trim()
+          ? `搜索“${search.trim()}”`
+          : kind === "全部" && category === "全部"
+            ? "展示全部产品"
+            : `${kind === "全部" ? "" : kind}${category === "全部" ? "" : " · " + category}`}
         ，共 {projects.length} 个结果
       </p>
 
@@ -106,8 +119,21 @@ export function Discover({
           {projects.length === 0 && (
             <div className="empty-state">
               <Search size={28} />
-              <h3>还没有匹配的产品</h3>
-              <p>换个词试试，或者做第一个发布它的人。</p>
+              <h3>
+                {hasFilters
+                  ? search.trim()
+                    ? `没有找到“${search.trim()}”`
+                    : "没有符合筛选的产品"
+                  : "这里还在等第一簇星火"}
+              </h3>
+              <p>
+                {hasFilters
+                  ? "清除搜索与筛选，再看看全部产品。"
+                  : "发布第一个真实产品，让社区开始助燃。"}
+              </p>
+              <button className="empty-action" onClick={hasFilters ? resetFilters : onOpenSubmit}>
+                {hasFilters ? "清除搜索与筛选" : "发布第一个产品"}
+              </button>
             </div>
           )}
         </div>

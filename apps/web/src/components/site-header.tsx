@@ -89,7 +89,7 @@ export function SiteHeader({
         >
           {user ? (
             user.image ? (
-              <img src={user.image} alt={user.name} />
+              <img src={user.image} alt={user.name} width={44} height={44} />
             ) : (
               user.name.slice(0, 1).toUpperCase()
             )
@@ -105,6 +105,9 @@ export function SiteHeader({
           <Search size={18} />
           <input
             autoFocus
+            aria-label="搜索产品、功能或赛道"
+            name="site-search"
+            autoComplete="off"
             value={search}
             onChange={(event) => {
               const value = event.target.value;

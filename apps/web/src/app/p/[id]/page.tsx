@@ -108,7 +108,7 @@ export default function ProjectDetailPage() {
   if (!project) {
     return (
       <AppChrome>
-        <main>
+        <main id="main-content">
           <div className="section-wrap" style={{ padding: "80px 24px" }}>
             {error || "加载中…"}
           </div>
@@ -119,12 +119,12 @@ export default function ProjectDetailPage() {
 
   return (
     <AppChrome>
-      <main>
+      <main id="main-content">
         <div className="section-wrap detail-wrap">
           <div className="detail-hero">
             {project.logoUrl ? (
               <span className="detail-logo">
-                <img src={project.logoUrl} alt={`${project.name} Logo`} />
+                <img src={project.logoUrl} alt={`${project.name} Logo`} width={84} height={84} />
               </span>
             ) : (
               <span className="detail-logo">{project.name.slice(0, 1)}</span>
@@ -142,7 +142,7 @@ export default function ProjectDetailPage() {
               <p>{project.tagline}</p>
               <a className="detail-maker" href={`/u/${project.makerId}`}>
                 {project.makerAvatarUrl ? (
-                  <img src={project.makerAvatarUrl} alt={project.maker} />
+                  <img src={project.makerAvatarUrl} alt={project.maker} width={26} height={26} />
                 ) : (
                   <span>{project.maker.slice(0, 1)}</span>
                 )}
@@ -159,12 +159,14 @@ export default function ProjectDetailPage() {
             )}
             <button
               className={project.voted ? "vote voted" : "vote"}
+              aria-label={project.voted ? `取消点赞 ${project.name}` : `点赞 ${project.name}`}
               onClick={() => void toggleVote()}
             >
               <Heart size={16} fill={project.voted ? "currentColor" : "none"} /> {project.voteCount}
             </button>
             <button
               className={project.bookmarked ? "vote voted" : "vote"}
+              aria-label={project.bookmarked ? `取消收藏 ${project.name}` : `收藏 ${project.name}`}
               onClick={() => void toggleBookmark()}
             >
               <Bookmark size={16} fill={project.bookmarked ? "currentColor" : "none"} />{" "}
@@ -192,6 +194,8 @@ export default function ProjectDetailPage() {
                     <img
                       src={project.extraQrUrl || project.qrUrl || ""}
                       alt={`${project.name} 二维码`}
+                      width={112}
+                      height={112}
                       onError={(event) => {
                         event.currentTarget.parentElement?.style.setProperty("display", "none");
                       }}
@@ -205,6 +209,8 @@ export default function ProjectDetailPage() {
                     className="detail-shot"
                     src={url}
                     alt={`${project.name} 截图`}
+                    width={800}
+                    height={600}
                     loading="lazy"
                   />
                 ))}
@@ -215,14 +221,19 @@ export default function ProjectDetailPage() {
           <section className="detail-section">
             <h3>评论（{comments.length}）</h3>
             <div className="detail-comment-form">
+              <label className="sr-only" htmlFor="comment-body">
+                评论内容
+              </label>
               <textarea
+                id="comment-body"
+                name="comment"
                 value={commentBody}
                 onChange={(event) => setCommentBody(event.target.value)}
                 placeholder={user ? "写下你的真实看法（2-500 字）" : "登录后评论"}
                 maxLength={500}
               />
               <button className="primary-button" onClick={() => void postComment()} disabled={busy}>
-                {busy ? "发送中" : "发表评论"}
+                {busy ? "发送中…" : "发表评论"}
               </button>
             </div>
             <div className="submission-list mine">
@@ -231,7 +242,12 @@ export default function ProjectDetailPage() {
                   <div>
                     <a className="detail-maker" href={`/u/${comment.userId}`}>
                       {comment.userAvatarUrl ? (
-                        <img src={comment.userAvatarUrl} alt={comment.userName} />
+                        <img
+                          src={comment.userAvatarUrl}
+                          alt={comment.userName}
+                          width={26}
+                          height={26}
+                        />
                       ) : (
                         <span>{comment.userName.slice(0, 1)}</span>
                       )}

@@ -173,7 +173,11 @@ export function TaskClaimModal({ claim, onClose, onNotify, onChanged }: TaskClai
           ))}
           <div className="upload-field">
             <span className="logo-chip">
-              {screenshot ? <img src={screenshot.publicUrl} alt="截图" /> : <ImagePlus size={18} />}
+              {screenshot ? (
+                <img src={screenshot.publicUrl} alt="截图" width={44} height={44} />
+              ) : (
+                <ImagePlus size={18} />
+              )}
             </span>
             <div>
               <button
@@ -205,7 +209,7 @@ export function TaskClaimModal({ claim, onClose, onNotify, onChanged }: TaskClai
             <button className="primary-button" type="submit" disabled={busy || !ready}>
               {busy ? (
                 <>
-                  <LoaderCircle className="spin" size={17} /> 提交中
+                  <LoaderCircle className="spin" size={17} /> 提交中…
                 </>
               ) : (
                 "提交反馈，等待验收"
