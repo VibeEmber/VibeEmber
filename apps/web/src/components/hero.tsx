@@ -43,8 +43,14 @@ export function Hero({ week, onOpenSubmit }: HeroProps) {
             ))}
             {(week?.helpers.length ?? 0) === 0 && <span>火</span>}
           </div>
-          <strong>{memberCount || "--"}</strong>
-          <span>位独立开发者已入场</span>
+          {memberCount > 0 ? (
+            <>
+              <strong>{memberCount}</strong>
+              <span>位独立开发者已入场</span>
+            </>
+          ) : (
+            <span className="hero-proof-empty">首批共创者招募中</span>
+          )}
         </div>
       </div>
 
@@ -59,7 +65,7 @@ export function Hero({ week, onOpenSubmit }: HeroProps) {
         <div className="orbit orbit-two" />
         <div className="center-rocket">
           <EmberMark size={36} />
-          <span>星火正旺</span>
+          <span>{memberCount > 0 ? "星火正旺" : "首批招募中"}</span>
         </div>
         {cases[0] ? (
           <article className="float-card card-a">
@@ -121,14 +127,29 @@ export function Hero({ week, onOpenSubmit }: HeroProps) {
         <div className="spark spark-b">✦</div>
         <div className="spark spark-c">·</div>
         <div className="board-stats">
-          <div>
-            <b>{week?.helpedProjectCount ?? 0}</b>
-            <span>本周被帮助产品</span>
-          </div>
-          <div>
-            <b>{week?.acceptedCount ?? 0}</b>
-            <span>有效反馈</span>
-          </div>
+          {week && (week.helpedProjectCount > 0 || week.acceptedCount > 0) ? (
+            <>
+              <div>
+                <b>{week.helpedProjectCount}</b>
+                <span>本周被帮助产品</span>
+              </div>
+              <div>
+                <b>{week.acceptedCount}</b>
+                <span>有效反馈</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <b>待点亮</b>
+                <span>真实体验</span>
+              </div>
+              <div>
+                <b>待出现</b>
+                <span>验收后展示</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </section>

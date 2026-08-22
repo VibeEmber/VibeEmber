@@ -264,7 +264,11 @@ export function SubmitModal({ project, onClose, onNotify, onSubmitted }: SubmitM
         )}
         <div className="upload-field">
           <span className="logo-chip">
-            {logo ? <img src={logo.publicUrl} alt="Logo" /> : <ImagePlus size={18} />}
+            {logo ? (
+              <img src={logo.publicUrl} alt="Logo" width={44} height={44} />
+            ) : (
+              <ImagePlus size={18} />
+            )}
           </span>
           <div>
             <button
@@ -287,7 +291,7 @@ export function SubmitModal({ project, onClose, onNotify, onSubmitted }: SubmitM
         <div className="upload-field">
           <span className="logo-chip">
             {screenshots[0] ? (
-              <img src={screenshots[0].publicUrl} alt="产品截图" />
+              <img src={screenshots[0].publicUrl} alt="产品截图" width={44} height={44} />
             ) : (
               <ImagePlus size={18} />
             )}
@@ -313,7 +317,11 @@ export function SubmitModal({ project, onClose, onNotify, onSubmitted }: SubmitM
         {(kind === "mini_program" || kind === "social") && (
           <div className="upload-field">
             <span className="logo-chip">
-              {qr ? <img src={qr.publicUrl} alt="二维码" /> : <ImagePlus size={18} />}
+              {qr ? (
+                <img src={qr.publicUrl} alt="二维码" width={44} height={44} />
+              ) : (
+                <ImagePlus size={18} />
+              )}
             </span>
             <div>
               <button
@@ -348,7 +356,7 @@ export function SubmitModal({ project, onClose, onNotify, onSubmitted }: SubmitM
         <button className="primary-button" type="submit" disabled={busy || screenshots.length < 1}>
           {busy ? (
             <>
-              <LoaderCircle className="spin" size={17} /> 正在提交
+              <LoaderCircle className="spin" size={17} /> 正在提交…
             </>
           ) : (
             <>

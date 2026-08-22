@@ -20,24 +20,28 @@ export default function ProfilePage() {
   if (error)
     return (
       <AppChrome>
-        <main className="section-wrap profile-page">{error}</main>
+        <main id="main-content" className="section-wrap profile-page">
+          {error}
+        </main>
       </AppChrome>
     );
   if (!profile)
     return (
       <AppChrome>
-        <main className="section-wrap profile-page">加载中…</main>
+        <main id="main-content" className="section-wrap profile-page">
+          加载中…
+        </main>
       </AppChrome>
     );
 
   return (
     <AppChrome>
-      <main className="section-wrap profile-page">
+      <main id="main-content" className="section-wrap profile-page">
         <div className="account-head profile-head">
           <span className="account-avatar">
             {profile.image ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.image} alt={profile.name} />
+              <img src={profile.image} alt={profile.name} width={48} height={48} />
             ) : (
               profile.name.slice(0, 1)
             )}

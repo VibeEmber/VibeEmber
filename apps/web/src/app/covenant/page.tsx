@@ -5,7 +5,7 @@ import { SITE } from "@vibeember/shared";
 export default function CovenantPage() {
   return (
     <AppChrome>
-      <main className="section-wrap covenant-page">
+      <main id="main-content" className="section-wrap covenant-page">
         <span className="section-kicker">星火场</span>
         <h1>社区公约</h1>
         <p className="covenant-lead">

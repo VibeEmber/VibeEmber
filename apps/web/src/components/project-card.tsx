@@ -33,7 +33,13 @@ export function ProjectCard({
         <div className="visual-rings" />
         {project.logoUrl ? (
           <div className="app-icon" style={{ background: "#fff" }}>
-            <img src={project.logoUrl} alt={`${project.name} Logo`} loading="lazy" />
+            <img
+              src={project.logoUrl}
+              alt={`${project.name} Logo`}
+              width={67}
+              height={67}
+              loading="lazy"
+            />
           </div>
         ) : (
           <div
@@ -48,6 +54,8 @@ export function ProjectCard({
             <img
               src={project.qrUrl}
               alt={`${project.name} 二维码`}
+              width={34}
+              height={34}
               loading="lazy"
               onError={(event) => {
                 event.currentTarget.parentElement?.style.setProperty("display", "none");
@@ -99,7 +107,13 @@ export function ProjectCard({
             <Link className="maker-link" href={`/u/${project.makerId}`}>
               {project.makerAvatarUrl ? (
                 <span className="maker-avatar">
-                  <img src={project.makerAvatarUrl} alt={project.maker} loading="lazy" />
+                  <img
+                    src={project.makerAvatarUrl}
+                    alt={project.maker}
+                    width={21}
+                    height={21}
+                    loading="lazy"
+                  />
                 </span>
               ) : (
                 <span className="maker-avatar">{project.avatar}</span>

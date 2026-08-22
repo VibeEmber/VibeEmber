@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@vibeember/shared";
+import { api, PROJECT_KINDS } from "@vibeember/shared";
 import type { CommunityWeek, ProjectPublic, TaskClaimItem } from "@vibeember/shared";
 import { useAppSession } from "@/lib/session";
 import { projectPalettes, type DisplayProject } from "@/lib/types";
+import { categoryFilters } from "@/data/fallback";
 import { AuthModal } from "./modals/auth-modal";
 import { SubmitModal } from "./modals/submit-modal";
 import { TaskClaimModal } from "./modals/task-claim-modal";
@@ -43,15 +44,29 @@ function toDisplayProject(project: ProjectPublic, index: number): DisplayProject
   };
 }
 
-export function Home() {
+interface HomeProps {
+  initialSearch?: string;
+  initialKind?: string;
+  initialCategory?: string;
+}
+
+export function Home({
+  initialSearch = "",
+  initialKind = "全部",
+  initialCategory = "全部",
+}: HomeProps) {
   const { user } = useAppSession();
   const router = useRouter();
-  const [category, setCategory] = useState("全部");
-  const [kind, setKind] = useState("全部");
-  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState(
+    categoryFilters.includes(initialCategory) ? initialCategory : "全部",
+  );
+  const [kind, setKind] = useState(
+    PROJECT_KINDS.some((item) => item.label === initialKind) ? initialKind : "全部",
+  );
+  const [search, setSearch] = useState(initialSearch.slice(0, 100));
   const [voted, setVoted] = useState<Array<number | string>>([]);
   const [showSubmit, setShowSubmit] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
+  const [showSearch, setShowSearch] = useState(Boolean(initialSearch.trim()));
   const [showAuth, setShowAuth] = useState(false);
   const [activeClaim, setActiveClaim] = useState<TaskClaimItem | null>(null);
   const [toast, setToast] = useState("");
@@ -90,6 +105,24 @@ export function Home() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const query = search.trim();
+
+    if (query) url.searchParams.set("q", query);
+    else url.searchParams.delete("q");
+    if (kind !== "全部") url.searchParams.set("kind", kind);
+    else url.searchParams.delete("kind");
+    if (category !== "全部") url.searchParams.set("topic", category);
+    else url.searchParams.delete("topic");
+
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+  }, [category, kind, search]);
 
   const allProjects = liveProjects;
 
@@ -174,7 +207,7 @@ export function Home() {
   };
 
   return (
-    <main>
+    <>
       <SiteHeader
         user={user}
         search={search}
@@ -184,45 +217,49 @@ export function Home() {
         onOpenSubmit={openSubmit}
         onOpenAccount={openAccount}
       />
-      <Hero week={week} onOpenSubmit={openSubmit} />
-      <Ticker week={week} />
-      <Discover
-        projects={visibleProjects}
-        total={allProjects.length}
-        category={category}
-        setCategory={setCategory}
-        kind={kind}
-        setKind={setKind}
-        resetFilters={resetFilters}
-        voted={voted}
-        onToggleVote={(id) => void toggleVote(id)}
-        onToggleBookmark={(id) => void toggleBookmark(id)}
-        week={week}
-        onNotify={notify}
-        onOpenSearch={() => {
-          setShowSearch(true);
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }}
-      />
-      <HelpSection
-        loggedIn={Boolean(user)}
-        week={week}
-        onNotify={notify}
-        onNeedAuth={() => {
-          setShowAuth(true);
-          notify("登录后才能领取助燃");
-        }}
-        onOpenClaim={openClaim}
-        onOpenLedger={() => {
-          if (!user) {
+      <main id="main-content">
+        <Hero week={week} onOpenSubmit={openSubmit} />
+        <Ticker week={week} />
+        <Discover
+          projects={visibleProjects}
+          total={allProjects.length}
+          search={search}
+          category={category}
+          setCategory={setCategory}
+          kind={kind}
+          setKind={setKind}
+          resetFilters={resetFilters}
+          voted={voted}
+          onToggleVote={(id) => void toggleVote(id)}
+          onToggleBookmark={(id) => void toggleBookmark(id)}
+          week={week}
+          onNotify={notify}
+          onOpenSubmit={openSubmit}
+          onOpenSearch={() => {
+            setShowSearch(true);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
+        <HelpSection
+          loggedIn={Boolean(user)}
+          week={week}
+          onNotify={notify}
+          onNeedAuth={() => {
             setShowAuth(true);
-            notify("登录后查看火苗账本");
-            return;
-          }
-          router.push("/me?tab=ledger");
-        }}
-      />
-      <HowItWorks />
+            notify("登录后才能领取助燃");
+          }}
+          onOpenClaim={openClaim}
+          onOpenLedger={() => {
+            if (!user) {
+              setShowAuth(true);
+              notify("登录后查看火苗账本");
+              return;
+            }
+            router.push("/me?tab=ledger");
+          }}
+        />
+        <HowItWorks />
+      </main>
       <Footer />
 
       {showSubmit && (
@@ -248,6 +285,6 @@ export function Home() {
       )}
 
       <Toast message={toast} />
-    </main>
+    </>
   );
 }

@@ -190,7 +190,11 @@ export function MeCenter({ user }: { user: SessionUser }) {
       <aside className="me-nav">
         <div className="me-profile">
           <span className="account-avatar">
-            {user.image ? <img src={user.image} alt={user.name} /> : user.name.slice(0, 1)}
+            {user.image ? (
+              <img src={user.image} alt={user.name} width={48} height={48} />
+            ) : (
+              user.name.slice(0, 1)
+            )}
           </span>
           <div>
             <span>{user.role === "admin" ? "管理员" : "开发者"}</span>
