@@ -86,7 +86,8 @@ pnpm smoke
 
 - Better-Auth：GitHub OAuth + 邮箱 OTP，**无密码登录**
 - Session / Cookie / CSRF 由 Better-Auth 管理
-- `BOOTSTRAP_ADMIN_EMAIL`（默认 `admin@vibeember.dev`）首次登录自动成为管理员
+- `BOOTSTRAP_ADMIN_EMAIL`（默认 `admin@vibeember.dev`）只在**首次注册**时引导出第一个管理员；已有用户的角色不随该变量变化
+- **应用内角色管理**：管理员在个人中心「用户管理」标签页按昵称/邮箱搜索成员、授予或移除管理员权限（`GET /api/admin/users`、`PATCH /api/admin/users/[id]/role`）。护栏：不能修改自己的角色，保证社区始终至少保留一位操作中的管理员；被调整角色的用户会收到通知
 - GitHub OAuth App 回调地址：`{BETTER_AUTH_URL}/api/auth/callback/github`
   - 开发：`http://localhost:3000/api/auth/callback/github`
   - 生产：`https://<对外域名>/api/auth/callback/github`

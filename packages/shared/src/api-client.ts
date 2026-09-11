@@ -9,6 +9,7 @@ import type {
   TaskCreateInput,
 } from "./schemas.js";
 import type {
+  AdminUserItem,
   CommentItem,
   CommunityWeek,
   NotificationItem,
@@ -22,6 +23,7 @@ import type {
   TaskClaimItem,
   TaskPublic,
   TaskReportItem,
+  UserRole,
 } from "./types.js";
 
 export class ApiError extends Error {
@@ -133,6 +135,13 @@ export const api = {
     }),
   profile: (id: string) => apiFetch<PublicProfile>(`/api/users/${id}`),
   adminReports: () => apiFetch<{ reports: TaskReportItem[] }>("/api/admin/reports"),
+  adminUsers: (query: string) =>
+    apiFetch<{ users: AdminUserItem[] }>(`/api/admin/users?q=${encodeURIComponent(query)}`),
+  updateUserRole: (id: string, role: UserRole) =>
+    apiFetch<{ id: string; role: UserRole }>(`/api/admin/users/${id}/role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
   resolveReport: (id: string, action: "upheld" | "dismissed", resolution: string) =>
     apiFetch<{ ok: boolean }>(`/api/admin/reports/${id}/resolve`, {
       method: "POST",

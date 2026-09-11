@@ -12,6 +12,7 @@ import {
   Rocket,
   ShieldCheck,
   Upload,
+  UserCircle,
   UserRound,
   Users,
 } from "./spark-icons";
@@ -27,6 +28,7 @@ import {
   type RejectReason,
 } from "@vibeember/shared";
 import type {
+  AdminUserItem,
   ProjectPrivate,
   ProjectPublic,
   SessionUser,
@@ -35,6 +37,7 @@ import type {
   TaskClaimItem,
   TaskPublic,
   TaskReportItem,
+  UserRole,
 } from "@vibeember/shared";
 import { authClient } from "@/lib/auth-client";
 import { AuthModal } from "./modals/auth-modal";
@@ -51,6 +54,7 @@ const TABS = [
   { id: "ledger", label: "火苗账本", icon: Flame },
   { id: "review", label: "投稿审核", icon: ShieldCheck, admin: true },
   { id: "reports", label: "抽查举报", icon: BookOpen, admin: true },
+  { id: "users", label: "用户管理", icon: UserCircle, admin: true },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -81,6 +85,8 @@ export function MeCenter({ user }: { user: SessionUser }) {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState("");
+  const [adminUsers, setAdminUsers] = useState<AdminUserItem[]>([]);
+  const [userQuery, setUserQuery] = useState("");
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const onNotify = (message: string) => {
@@ -114,12 +120,14 @@ export function MeCenter({ user }: { user: SessionUser }) {
         setBookmarks(saved.projects);
         setMyTasks(ownedTasks);
         if (user.role === "admin") {
-          const [queue, reportList] = await Promise.all([
+          const [queue, reportList, userList] = await Promise.all([
             api.adminProjects("pending"),
             api.adminReports(),
+            api.adminUsers(""),
           ]);
           setReviewProjects(queue.projects);
           setReports(reportList.reports);
+          setAdminUsers(userList.users);
         }
       } catch (error) {
         onNotify(error instanceof Error ? error.message : "加载失败");
@@ -170,6 +178,30 @@ export function MeCenter({ user }: { user: SessionUser }) {
       onNotify(action === "approved" ? "已通过，项目现已公开展示" : "已驳回并记录原因");
     } catch (error) {
       onNotify(error instanceof Error ? error.message : "审核失败");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const searchUsers = async () => {
+    try {
+      const data = await api.adminUsers(userQuery.trim());
+      setAdminUsers(data.users);
+    } catch (error) {
+      onNotify(error instanceof Error ? error.message : "搜索失败");
+    }
+  };
+
+  const changeRole = async (target: AdminUserItem, role: UserRole) => {
+    setBusy(true);
+    try {
+      await api.updateUserRole(target.id, role);
+      setAdminUsers((rows) => rows.map((row) => (row.id === target.id ? { ...row, role } : row)));
+      onNotify(
+        role === "admin" ? `已将 ${target.name} 设为管理员` : `已移除 ${target.name} 的管理员权限`,
+      );
+    } catch (error) {
+      onNotify(error instanceof Error ? error.message : "操作失败");
     } finally {
       setBusy(false);
     }
@@ -666,6 +698,83 @@ export function MeCenter({ user }: { user: SessionUser }) {
                 </article>
               ))}
               {reports.length === 0 && <div className="panel-empty">暂无待处理抽查。</div>}
+            </div>
+          </>
+        )}
+
+        {tab === "users" && user.role === "admin" && (
+          <>
+            <header className="me-heading">
+              <span className="section-kicker">
+                <UserCircle size={15} /> 用户管理
+              </span>
+              <h1>成员与管理员</h1>
+              <p>授予或移除管理员权限；不能修改自己的角色，保证社区始终至少有一位管理员。</p>
+            </header>
+            <div className="me-card">
+              <div className="panel-title">
+                <div>
+                  <span className="section-kicker">搜索</span>
+                  <h3>按昵称或邮箱查找成员</h3>
+                </div>
+              </div>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void searchUsers();
+                }}
+              >
+                <label>
+                  关键词
+                  <input
+                    value={userQuery}
+                    placeholder="昵称或邮箱，留空列出全部"
+                    onChange={(event) => setUserQuery(event.target.value)}
+                  />
+                </label>
+                <button type="submit" disabled={busy}>
+                  搜索
+                </button>
+              </form>
+            </div>
+            <div className="submission-list mine me-list">
+              {adminUsers.map((item) => (
+                <article key={item.id}>
+                  <div>
+                    <span>
+                      {new Date(item.createdAt).toLocaleDateString("zh-CN")} · {item.email}
+                      {item.id === user.id ? " ·（你）" : ""}
+                    </span>
+                    <h4>
+                      <Link href={`/u/${item.id}`}>{item.name}</Link>
+                    </h4>
+                  </div>
+                  <div className="review-actions">
+                    <span
+                      className={`status-pill ${item.role === "admin" ? "approved" : "pending"}`}
+                    >
+                      {item.role === "admin" ? "管理员" : "成员"}
+                    </span>
+                    {item.id !== user.id &&
+                      (item.role === "admin" ? (
+                        <button disabled={busy} onClick={() => void changeRole(item, "member")}>
+                          移除管理员
+                        </button>
+                      ) : (
+                        <button
+                          className="approve"
+                          disabled={busy}
+                          onClick={() => void changeRole(item, "admin")}
+                        >
+                          设为管理员
+                        </button>
+                      ))}
+                  </div>
+                </article>
+              ))}
+              {adminUsers.length === 0 && (
+                <div className="panel-empty">没有找到符合条件的成员。</div>
+              )}
             </div>
           </>
         )}

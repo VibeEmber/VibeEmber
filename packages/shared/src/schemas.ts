@@ -267,6 +267,11 @@ export const reportResolveSchema = z.object({
   resolution: z.string().trim().min(2).max(300),
 });
 
+export const roleUpdateSchema = z.object({
+  role: z.enum(["admin", "member"], { message: "角色无效" }),
+});
+export type RoleUpdateInput = z.input<typeof roleUpdateSchema>;
+
 export const creditBand = (score: number) => {
   if (score >= 85) return "稳";
   if (score >= CREDIT.minClaim) return "常";

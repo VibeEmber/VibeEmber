@@ -205,6 +205,48 @@ async function main() {
     fail("OTP/上传/审核链路", error.message);
   }
 
+  try {
+    const listRes = await apiFetch("/admin/users?q=", { headers: { cookie } });
+    const listData = await listRes.json();
+    if (!listRes.ok || !Array.isArray(listData.users)) {
+      throw new Error(`用户列表失败 ${listRes.status} ${JSON.stringify(listData)}`);
+    }
+    const self = listData.users.find((item) => item.email === TEST_EMAIL);
+    const target = listData.users.find(
+      (item) => item.role === "member" && item.email !== TEST_EMAIL,
+    );
+    if (!self || !target) throw new Error("种子用户不足（是否已运行 pnpm db:seed？）");
+    ok(`管理员用户列表（${listData.users.length} 位成员）`);
+
+    const selfRes = await apiFetch(`/admin/users/${self.id}/role`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", cookie },
+      body: JSON.stringify({ role: "member" }),
+    });
+    if (selfRes.status === 400) ok("修改自己角色的请求被拦截");
+    else fail("修改自己角色的请求被拦截", `status ${selfRes.status}`);
+
+    const promoteRes = await apiFetch(`/admin/users/${target.id}/role`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", cookie },
+      body: JSON.stringify({ role: "admin" }),
+    });
+    const promoted = await promoteRes.json();
+    if (promoteRes.ok && promoted.role === "admin") ok(`成员已设为管理员（${target.email}）`);
+    else fail("成员已设为管理员", `${promoteRes.status} ${JSON.stringify(promoted)}`);
+
+    const demoteRes = await apiFetch(`/admin/users/${target.id}/role`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", cookie },
+      body: JSON.stringify({ role: "member" }),
+    });
+    const demoted = await demoteRes.json();
+    if (demoteRes.ok && demoted.role === "member") ok("管理员权限已移除，还原为成员");
+    else fail("管理员权限已移除", `${demoteRes.status} ${JSON.stringify(demoted)}`);
+  } catch (error) {
+    fail("用户角色管理", error.message);
+  }
+
   console.log(`\n结果：${passed} 通过，${failed} 失败`);
   process.exit(failed > 0 ? 1 : 0);
 }

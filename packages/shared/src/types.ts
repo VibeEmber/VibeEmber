@@ -183,3 +183,12 @@ export interface TaskReportItem {
   screenshotUrl: string | null;
   createdAt: string;
 }
+
+export interface AdminUserItem {
+  id: string;
+  name: string;
+  email: string;
+  image: string | null;
+  role: UserRole;
+  createdAt: string;
+}
