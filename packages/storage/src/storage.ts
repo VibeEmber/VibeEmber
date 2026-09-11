@@ -41,6 +41,11 @@ export function createStorage(config: StorageConfig = readStorageConfig()): Stor
       secretAccessKey: config.secretAccessKey,
     },
     forcePathStyle: config.forcePathStyle,
+    // AWS SDK 2025+ 默认开启 CRC32 完整性校验，会把 x-amz-checksum-* 写进预签名 URL、
+    // 要求上传方回传校验头——浏览器直传与多数自建 S3 兼容服务（尤其旧版 MinIO）不支持，
+    // 表现为 SignatureDoesNotMatch。WHEN_REQUIRED 恢复传统签名行为（仅服务端要求时校验）。
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 
   return {

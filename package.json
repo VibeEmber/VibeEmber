@@ -28,6 +28,7 @@
     "db:migrate": "pnpm --filter @vibeember/database db:migrate",
     "db:deploy": "pnpm --filter @vibeember/database db:deploy",
     "db:seed": "pnpm --filter @vibeember/database db:seed",
+    "s3:diagnose": "node scripts/s3-diagnose.mjs",
     "smoke": "node scripts/smoke.mjs"
   },
   "devDependencies": {
