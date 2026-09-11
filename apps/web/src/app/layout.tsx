@@ -11,6 +11,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="zh-CN">
+      <head>
+        <script
+          defer
+          src="https://vibeloft.ai/telemetry/v1.js"
+          data-vl-product-id="13eedc00-e82f-4976-9552-ed0b07ccaa98"
+          data-vl-auth-key="vl_web.V-Y4Z0nyPzIMe8O_KOuFOikDgzx3cwhMnhsFSkUlteM"
+        />
+      </head>
       <body>
         <a className="skip-link" href="#main-content">
           跳到主要内容
