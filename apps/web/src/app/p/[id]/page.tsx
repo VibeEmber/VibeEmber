@@ -9,6 +9,7 @@ import { api } from "@vibeember/shared";
 import type { CommentItem, ProjectPublic } from "@vibeember/shared";
 import { useAppSession } from "@/lib/session";
 import { AppChrome } from "@/components/app-chrome";
+import { Modal } from "@/components/modal";
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
@@ -18,6 +19,7 @@ export default function ProjectDetailPage() {
   const [commentBody, setCommentBody] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState<{ url: string; label: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -190,7 +192,17 @@ export default function ProjectDetailPage() {
               <h3>二维码与截图</h3>
               <div className="detail-assets">
                 {(project.extraQrUrl || project.qrUrl) && (
-                  <span className="detail-qr">
+                  <button
+                    type="button"
+                    className="detail-qr detail-asset-btn"
+                    onClick={() =>
+                      setPreview({
+                        url: project.extraQrUrl || project.qrUrl || "",
+                        label: `${project.name} 二维码`,
+                      })
+                    }
+                    aria-label={`预览 ${project.name} 二维码`}
+                  >
                     <img
                       src={project.extraQrUrl || project.qrUrl || ""}
                       alt={`${project.name} 二维码`}
@@ -201,18 +213,25 @@ export default function ProjectDetailPage() {
                       }}
                     />
                     <small>扫码 {project.kindLabel === "小程序" ? "进小程序" : "关注"}</small>
-                  </span>
+                  </button>
                 )}
-                {project.screenshotUrls.map((url) => (
-                  <img
+                {project.screenshotUrls.map((url, index) => (
+                  <button
                     key={url}
-                    className="detail-shot"
-                    src={url}
-                    alt={`${project.name} 截图`}
-                    width={800}
-                    height={600}
-                    loading="lazy"
-                  />
+                    type="button"
+                    className="detail-asset-btn"
+                    onClick={() => setPreview({ url, label: `${project.name} 截图 ${index + 1}` })}
+                    aria-label={`预览 ${project.name} 截图 ${index + 1}`}
+                  >
+                    <img
+                      className="detail-shot"
+                      src={url}
+                      alt={`${project.name} 截图 ${index + 1}`}
+                      width={800}
+                      height={600}
+                      loading="lazy"
+                    />
+                  </button>
                 ))}
               </div>
             </section>
@@ -270,6 +289,19 @@ export default function ProjectDetailPage() {
               <Check size={17} />
               {error}
             </div>
+          )}
+
+          {preview && (
+            <Modal
+              titleId="asset-preview-title"
+              className="image-lightbox"
+              onClose={() => setPreview(null)}
+            >
+              <h2 id="asset-preview-title" className="sr-only">
+                {preview.label}
+              </h2>
+              <img src={preview.url} alt={preview.label} />
+            </Modal>
           )}
         </div>
       </main>
