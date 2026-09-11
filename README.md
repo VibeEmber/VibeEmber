@@ -18,7 +18,7 @@
 
 ## 进入社区
 
-👉 **[https://wenxinxu.com/VibeEmber/](https://wenxinxu.com/VibeEmber/)**
+👉 **[https://vibember.dev](https://vibember.dev)**
 
 项目目前处于早期内测。欢迎发布真实作品、参与体验，也欢迎一起建设社区规则。
 

@@ -18,7 +18,7 @@ Add your kindling here first. Then let the spark become a prairie fire.
 
 ## Live community
 
-👉 **[https://wenxinxu.com/VibeEmber/](https://wenxinxu.com/VibeEmber/)**
+👉 **[https://vibember.dev](https://vibember.dev)**
 
 The project is in early preview. Ship real products, try other people’s work, and help shape the rules.
 
