@@ -337,3 +337,9 @@ model Notification {
 
   @@index([userId, createdAt(sort: Desc)])
 }
+
+/// 跨实例共享的运行时状态（如结算窗口的原子认领时间戳）
+model SystemState {
+  key       String   @id
+  updatedAt DateTime @updatedAt
+}

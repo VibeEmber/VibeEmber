@@ -2,19 +2,18 @@
   "name": "vibeember",
   "private": true,
   "version": "2.0.0",
-  "description": "星火场 VibeEmber - 产品首发互助社区（pnpm monorepo：web / api / worker）",
+  "description": "星火场 VibeEmber - 产品首发互助社区（Next.js 全栈单应用，双部署形态：Vercel 或 Docker Compose）",
   "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=24"
   },
   "scripts": {
-    "dev": "pnpm run dev:check -- 3000 4000 && pnpm run dev:prepare && pnpm -r --parallel --stream dev",
+    "dev": "pnpm run dev:check -- 3000 && pnpm run dev:prepare && pnpm -r --parallel --stream dev",
     "dev:check": "node scripts/check-dev-ports.mjs",
     "dev:prepare": "pnpm --filter \"./packages/**\" build",
     "dev:web": "pnpm run dev:check -- 3000 && pnpm run dev:prepare && pnpm --filter @vibeember/web dev",
-    "dev:api": "pnpm run dev:check -- 4000 && pnpm run dev:prepare && pnpm --filter @vibeember/api dev",
-    "dev:worker": "pnpm run dev:prepare && pnpm --filter @vibeember/worker dev",
     "build": "pnpm -r build",
+    "build:web": "pnpm --filter @vibeember/shared --filter @vibeember/database --filter @vibeember/storage run build && pnpm --filter @vibeember/web run build",
     "lint": "eslint . && pnpm --filter @vibeember/web lint",
     "lint:fix": "eslint . --fix && pnpm --filter @vibeember/web exec eslint . --fix",
     "test": "pnpm -r test",
@@ -51,7 +50,7 @@
     "apps/web/src/**/*.{ts,tsx}": [
       "pnpm --filter @vibeember/web exec eslint --fix --"
     ],
-    "{apps/api,apps/worker,packages}/**/src/**/*.{ts,tsx}": [
+    "packages/**/src/**/*.{ts,tsx}": [
       "eslint --fix --max-warnings=0 --no-warn-ignored"
     ]
   }

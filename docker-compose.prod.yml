@@ -1,6 +1,7 @@
-# 生产全栈编排：Caddy(80/443 自动 TLS) + web + api + worker + migrate + PostgreSQL + MinIO
+# 生产全栈编排：Caddy(80/443 自动 TLS) + web(Next.js 全栈：页面 + API) + migrate + PostgreSQL + MinIO
 # 使用：cp .env.example .env 并填好生产值，然后
 #   docker compose -f docker-compose.prod.yml up -d --build
+# 云端部署（Vercel）见 docs/DEVELOPMENT.md 的 Vercel 章节。
 name: vibeember-prod
 
 services:
@@ -16,7 +17,6 @@ services:
       - vibeember-caddy-config:/config
     depends_on:
       - web
-      - api
       - minio
     restart: unless-stopped
 
@@ -24,19 +24,11 @@ services:
     build:
       context: .
       dockerfile: deploy/Dockerfile.web
-    restart: unless-stopped
-    expose:
-      - "3000"
-
-  api:
-    build:
-      context: .
-      dockerfile: deploy/Dockerfile.api
+      target: runtime
     env_file: .env
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://vibe:${POSTGRES_PASSWORD:-vibe}@postgres:5432/vibeember
-      API_PORT: "4000"
       WEB_URL: https://${CADDY_DOMAIN:-localhost}
       BETTER_AUTH_URL: https://${CADDY_DOMAIN:-localhost}
       SMTP_HOST: ${SMTP_HOST:-localhost}
@@ -47,22 +39,7 @@ services:
       S3_PUBLIC_URL: https://${CADDY_DOMAIN:-localhost}/storage
     restart: unless-stopped
     expose:
-      - "4000"
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-
-  worker:
-    build:
-      context: .
-      dockerfile: deploy/Dockerfile.worker
-    env_file: .env
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://vibe:${POSTGRES_PASSWORD:-vibe}@postgres:5432/vibeember
-      S3_ENDPOINT: http://minio:9000
-      S3_PUBLIC_URL: https://${CADDY_DOMAIN:-localhost}/storage
-    restart: unless-stopped
+      - "3000"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -70,14 +47,11 @@ services:
   migrate:
     build:
       context: .
-      dockerfile: deploy/Dockerfile.api
+      dockerfile: deploy/Dockerfile.web
+      target: migrate
     env_file: .env
     environment:
       DATABASE_URL: postgresql://vibe:${POSTGRES_PASSWORD:-vibe}@postgres:5432/vibeember
-    command:
-      - sh
-      - -c
-      - ./node_modules/.bin/prisma migrate deploy --schema ./node_modules/@vibeember/database/prisma/schema.prisma
     restart: "no"
 
   postgres:

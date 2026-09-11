@@ -149,12 +149,12 @@ pnpm install
 docker compose up -d          # PostgreSQL :5432 / MinIO :9000 / Mailpit :8025
 pnpm db:migrate               # apply Prisma migrations
 pnpm db:seed                  # curated launch set
-pnpm dev                      # web :3000 / api :4000 / worker
+pnpm dev                      # single app :3000 (pages + API in one process)
 ```
 
-Dev OTP emails show up in [Mailpit](http://localhost:8025). GitHub sign-in needs `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` in `.env`, with callback `http://localhost:4000/api/auth/callback/github`.
+Dev OTP emails show up in [Mailpit](http://localhost:8025). GitHub sign-in needs `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` in `.env`, with callback `http://localhost:3000/api/auth/callback/github`.
 
-Architecture, ports, env vars, and production deploy: **[Development guide](docs/DEVELOPMENT.md)** (currently in Chinese).
+Architecture, ports, env vars, and production deploy (**Vercel Hobby** or self-hosted Docker Compose): **[Development guide](docs/DEVELOPMENT.md)** (currently in Chinese).
 
 ## Development guidelines (VibeCoding)
 

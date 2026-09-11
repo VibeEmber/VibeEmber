@@ -149,12 +149,12 @@ pnpm install
 docker compose up -d          # PostgreSQL :5432 / MinIO :9000 / Mailpit :8025
 pnpm db:migrate               # 应用 Prisma 迁移
 pnpm db:seed                  # 写入精选项目
-pnpm dev                      # web :3000 / api :4000 / worker
+pnpm dev                      # 单应用 :3000（页面 + API 同一进程）
 ```
 
-开发环境的验证码邮件在 [http://localhost:8025](http://localhost:8025)（Mailpit）查看。GitHub 登录需要在 `.env` 中填写 OAuth App 的 Client ID / Secret，回调地址为 `http://localhost:4000/api/auth/callback/github`。
+开发环境的验证码邮件在 [http://localhost:8025](http://localhost:8025)（Mailpit）查看。GitHub 登录需要在 `.env` 中填写 OAuth App 的 Client ID / Secret，回调地址为 `http://localhost:3000/api/auth/callback/github`。
 
-完整架构、端口、环境变量与生产部署见 **[开发文档](docs/DEVELOPMENT.md)**。
+完整架构、端口、环境变量与生产部署（**Vercel Hobby** 或 Docker Compose 自托管）见 **[开发文档](docs/DEVELOPMENT.md)**。
 
 ## 开发说明（VibeCoding）
 

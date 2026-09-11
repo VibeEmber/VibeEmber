@@ -1,7 +1,7 @@
 // 开发栈冒烟测试：node scripts/smoke.mjs
-// 前置：docker compose up -d && pnpm db:migrate && pnpm db:seed && api/worker 已启动
+// 前置：docker compose up -d && pnpm db:migrate && pnpm db:seed && web 已启动
 // 覆盖：健康检查、公开项目、未登录鉴权、邮箱 OTP 全链路（经 Mailpit 收件）、头像预签名、投稿审核、二维码生成
-const API = process.env.SMOKE_API ?? "http://localhost:4000/api";
+const API = process.env.SMOKE_API ?? "http://localhost:3000/api";
 const MAILPIT = process.env.SMOKE_MAILPIT ?? "http://localhost:8025";
 const TEST_EMAIL = process.env.BOOTSTRAP_ADMIN_EMAIL ?? "admin@vibeember.dev";
 const ORIGIN = process.env.WEB_URL ?? "http://localhost:3000";
@@ -178,7 +178,8 @@ async function main() {
         url: "https://example.com/smoke-test",
         kind: "web",
         topics: ["工具"],
-        helpNeeded: "需要 10 位真实用户体验并留下反馈",
+        helpNeeded:
+          "需要 10 位真实用户完成首次使用体验，并按三问留下可执行的真实反馈，帮助验证核心流程是否顺畅",
         screenshotKeys: [shotPresign.key],
       }),
     });
@@ -194,12 +195,12 @@ async function main() {
     if (!reviewRes.ok) throw new Error(`审核失败 ${reviewRes.status} ${await reviewRes.text()}`);
     ok("管理员审核通过");
 
-    await waitFor("worker 生成二维码", async () => {
+    await waitFor("API 内联生成二维码", async () => {
       const res = await fetch(`http://localhost:9000/vibeember/qr/${created.id}.png`);
       if (!res.ok) throw new Error(`qr status ${res.status}`);
       return true;
     });
-    ok("worker 已生成产品二维码并写入 MinIO");
+    ok("API 已内联生成产品二维码并写入 MinIO");
   } catch (error) {
     fail("OTP/上传/审核链路", error.message);
   }

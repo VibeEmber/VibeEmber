@@ -10,17 +10,28 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@vibeember/database": "workspace:*",
     "@vibeember/shared": "workspace:*",
+    "@vibeember/storage": "workspace:*",
+    "@vercel/functions": "^2.0.0",
     "better-auth": "^1.7.0",
+    "dotenv": "^17.0.0",
     "lucide-react": "^1.31.0",
     "next": "16.3.1",
+    "nodemailer": "^6.9.16",
+    "qrcode": "^1.5.4",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "sharp": "^0.34.0",
+    "undici": "^8.10.0",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.2.1",
     "@types/node": "^24.0.0",
+    "@types/nodemailer": "^6.4.16",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "eslint": "^9.20.0",

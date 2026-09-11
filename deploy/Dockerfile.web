@@ -1,4 +1,4 @@
-# Next.js 16 standalone 构建（Turbopack）
+# Next.js 16 全栈 standalone 构建（页面 + API Route Handlers + 结算定时器）
 FROM node:24-alpine AS base
 RUN corepack enable
 WORKDIR /repo
@@ -7,12 +7,26 @@ FROM base AS deps
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
+COPY packages/database/package.json packages/database/
+COPY packages/storage/package.json packages/storage/
+# prisma schema：packages/database 的 postinstall（prisma generate）需要它
+COPY packages/database/prisma packages/database/prisma
 RUN pnpm install --frozen-lockfile --filter @vibeember/web...
 
 FROM deps AS build
 COPY packages/shared/ packages/shared/
+COPY packages/database/ packages/database/
+COPY packages/storage/ packages/storage/
 COPY apps/web/ apps/web/
-RUN pnpm --filter @vibeember/shared build && pnpm --filter @vibeember/web build
+RUN pnpm --filter @vibeember/shared build && pnpm --filter @vibeember/database build && pnpm --filter @vibeember/storage build && pnpm --filter @vibeember/web build
+
+# 一次性迁移服务（docker-compose.prod.yml 的 migrate 用本阶段；含 prisma CLI）
+FROM base AS migrate
+COPY --from=build /repo /repo
+RUN pnpm --filter @vibeember/web --prod deploy /out
+WORKDIR /out
+RUN ./node_modules/.bin/prisma generate --schema ./node_modules/@vibeember/database/prisma/schema.prisma
+CMD ["./node_modules/.bin/prisma", "migrate", "deploy", "--schema", "./node_modules/@vibeember/database/prisma/schema.prisma"]
 
 FROM node:24-alpine AS runtime
 WORKDIR /app

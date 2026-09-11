@@ -1,0 +1,39 @@
+name: Migrate
+
+# 云端数据库迁移：在仓库 Secrets 配置 DATABASE_URL 后启用
+# （未配置 secret 时自动跳过，不影响 CI）
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    name: prisma migrate deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
+      - name: 检查 DATABASE_URL secret
+        id: check
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "未配置 DATABASE_URL secret，跳过迁移"
+          fi
+      - run: pnpm install --frozen-lockfile
+        if: steps.check.outputs.skip != 'true'
+      - run: pnpm --filter @vibeember/database db:deploy
+        if: steps.check.outputs.skip != 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
