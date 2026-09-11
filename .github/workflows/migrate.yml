@@ -1,7 +1,7 @@
 name: Migrate
 
 # 云端数据库迁移：在仓库 Secrets 配置 DATABASE_URL 后启用
-# （未配置 secret 时自动跳过，不影响 CI）
+# （未配置 secret 时所有步骤整体跳过、任务保持绿色，不影响 CI）
 
 on:
   push:
@@ -14,14 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9.15.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: ".nvmrc"
-          cache: pnpm
+      # 先查 secret 再决定是否搭建环境：跳过时连 checkout/setup 都不执行，
+      # 避免 setup-node 的缓存 post 步骤因无可缓存内容而误报失败
       - name: 检查 DATABASE_URL secret
         id: check
         env:
@@ -31,6 +25,17 @@ jobs:
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "未配置 DATABASE_URL secret，跳过迁移"
           fi
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.skip != 'true'
+      - uses: pnpm/action-setup@v4
+        if: steps.check.outputs.skip != 'true'
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.skip != 'true'
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
         if: steps.check.outputs.skip != 'true'
       - run: pnpm --filter @vibeember/database db:deploy
